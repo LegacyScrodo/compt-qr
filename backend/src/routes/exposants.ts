@@ -131,7 +131,9 @@ exposantsRouter.delete('/:id(\\d+)', verifyJWT, requireAdmin, async (req, res) =
     }
     const logoFile = result.rows[0].logo_file as string | null
     if (logoFile) {
-      fs.unlink(path.join(uploadsDir, path.basename(logoFile)), () => {})
+      fs.unlink(path.join(uploadsDir, path.basename(logoFile)), (err) => {
+        if (err) console.error('Logo file cleanup failed:', err)
+      })
     }
     res.status(204).send()
   } catch (err) {
@@ -147,17 +149,35 @@ exposantsRouter.post('/:id(\\d+)/logo', verifyJWT, requireAdmin, upload.single('
       res.status(400).json({ error: 'Fichier image requis (jpeg, png, webp, gif, max 5 MB)' })
       return
     }
-    const logoFile = `/uploads/${req.file.filename}`
-    const result = await pool.query(
-      'UPDATE exposants SET logo_file = $1 WHERE id = $2 RETURNING *',
-      [logoFile, req.params.id]
-    )
-    if (!result.rows[0]) {
+    const newLogoFile = `/uploads/${req.file.filename}`
+
+    // Fetch old logo before updating so we can clean it up
+    const current = await pool.query('SELECT logo_file FROM exposants WHERE id = $1', [req.params.id])
+    if (!current.rows[0]) {
+      fs.unlink(path.join(uploadsDir, req.file.filename), () => {})
       res.status(404).json({ error: 'Exposant introuvable' })
       return
     }
+
+    const result = await pool.query(
+      'UPDATE exposants SET logo_file = $1 WHERE id = $2 RETURNING *',
+      [newLogoFile, req.params.id]
+    )
+
+    // Delete old logo file if it existed
+    const oldLogoFile = current.rows[0].logo_file as string | null
+    if (oldLogoFile) {
+      fs.unlink(path.join(uploadsDir, path.basename(oldLogoFile)), (err) => {
+        if (err) console.error('Old logo cleanup failed:', err)
+      })
+    }
+
     res.json(result.rows[0])
   } catch (err) {
+    // Clean up uploaded file on any error
+    if (req.file) {
+      fs.unlink(path.join(uploadsDir, req.file.filename), () => {})
+    }
     console.error('Upload logo error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
   }
