@@ -1,0 +1,62 @@
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - --api.insecure=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --certificatesresolvers.letsencrypt.acme.email=admin@compt-qr.ch
+      - --certificatesresolvers.letsencrypt.acme.storage=/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./acme.json:/acme.json
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.frontend.rule=Host(`compt-qr.ch`) && !PathPrefix(`/api`) && !PathPrefix(`/uploads`)
+      - traefik.http.routers.frontend.entrypoints=websecure
+      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
+    restart: unless-stopped
+    depends_on: [api]
+
+  api:
+    build: ./backend
+    environment:
+      - DATABASE_URL=postgresql://comptqr:${POSTGRES_PASSWORD}@postgres:5432/comptqr
+      - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=production
+      - BASE_URL=https://compt-qr.ch
+    volumes:
+      - uploads:/app/uploads
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=Host(`compt-qr.ch`) && (PathPrefix(`/api`) || PathPrefix(`/uploads`))
+      - traefik.http.routers.api.entrypoints=websecure
+      - traefik.http.routers.api.tls.certresolver=letsencrypt
+      - traefik.http.services.api.loadbalancer.server.port=3000
+    restart: unless-stopped
+    depends_on: [postgres]
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=comptqr
+      - POSTGRES_USER=comptqr
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
