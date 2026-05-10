@@ -7,17 +7,19 @@ const EVENT_COLOR = import.meta.env.VITE_EVENT_COLOR ?? '#1e1b4b'
 const EVENT_NAME = import.meta.env.VITE_EVENT_NAME ?? 'Comptoir'
 
 export function PublicCard() {
-  const { uuid } = useParams<{ uuid: string }>()
+  const { uuid } = useParams()
   const [exposant, setExposant] = useState<Exposant | null>(null)
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!uuid) return
+    let mounted = true
     api.exposants.get(uuid)
-      .then(setExposant)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
+      .then(data => { if (mounted) setExposant(data) })
+      .catch(() => { if (mounted) setError(true) })
+      .finally(() => { if (mounted) setLoading(false) })
+    return () => { mounted = false }
   }, [uuid])
 
   const logo = exposant?.logo_url ?? exposant?.logo_file
@@ -62,6 +64,7 @@ export function PublicCard() {
           <div className="flex items-center gap-4 mb-5">
             {logo ? (
               <img src={logo} alt={exposant.nom}
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
                 className="w-16 h-16 rounded-xl object-contain border border-gray-100 bg-gray-50 p-1 flex-shrink-0" />
             ) : (
               <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-2xl font-bold"

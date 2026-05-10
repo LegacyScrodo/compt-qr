@@ -4,6 +4,8 @@ import { PublicCard } from './PublicCard'
 import { vi } from 'vitest'
 import * as apiModule from '../../api'
 
+afterEach(() => vi.restoreAllMocks())
+
 it('affiche la carte de visite pour un exposant valide', async () => {
   vi.spyOn(apiModule.api.exposants, 'get').mockResolvedValue({
     uuid: 'test-uuid',
