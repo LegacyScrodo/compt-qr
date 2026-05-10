@@ -7,6 +7,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 export function ExposantList() {
   const [exposants, setExposants] = useState<Exposant[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     api.exposants.list().then(setExposants).finally(() => setLoading(false))
@@ -14,25 +15,38 @@ export function ExposantList() {
 
   async function handleDelete(id: number, nom: string) {
     if (!confirm(`Supprimer "${nom}" ?`)) return
-    await api.exposants.delete(id)
-    setExposants(prev => prev.filter(e => e.id !== id))
+    try {
+      await api.exposants.delete(id)
+      setExposants(prev => prev.filter(e => e.id !== id))
+    } catch {
+      setError('Erreur lors de la suppression')
+    }
   }
 
   async function exportPdf() {
-    const res = await api.exposants.exportPdf()
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'compt-qr-badges.pdf'
-    a.click()
-    URL.revokeObjectURL(url)
+    try {
+      const res = await api.exposants.exportPdf()
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'compt-qr-badges.pdf'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setError('Erreur lors de l\'export PDF')
+    }
   }
 
   if (loading) return <div className="text-gray-400">Chargement...</div>
 
   return (
     <div>
+      {error && (
+        <div className="mb-4 bg-red-950 border border-red-800 text-red-300 rounded-lg px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold">Exposants ({exposants.length})</h1>
         <div className="flex gap-3">
@@ -59,7 +73,7 @@ export function ExposantList() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
-            {exposants.map(e => (
+            {exposants.filter(e => e.id !== undefined).map(e => (
               <tr key={e.id} className="hover:bg-gray-800/50 transition-colors">
                 <td className="px-4 py-3 text-sm font-medium">{e.nom}</td>
                 <td className="px-4 py-3 text-sm text-gray-400">{e.entreprise ?? '—'}</td>

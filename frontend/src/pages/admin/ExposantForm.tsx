@@ -25,7 +25,8 @@ export function ExposantForm() {
     api.exposants.list().then(list => {
       const found = list.find(e => String(e.id) === id)
       if (found) setForm(found)
-    })
+      else setError('Exposant introuvable')
+    }).catch(() => setError('Erreur lors du chargement'))
   }, [id, isEdit])
 
   function set(field: keyof typeof EMPTY, value: string | null) {
@@ -100,7 +101,7 @@ export function ExposantForm() {
           </div>
           <div className="col-span-2">
             <label className={labelClass}>Statut</label>
-            <select value={form.statut} onChange={e => set('statut', e.target.value)}
+            <select value={form.statut} onChange={e => setForm(prev => ({ ...prev, statut: e.target.value as 'actif' | 'inactif' }))}
               className={inputClass}>
               <option value="actif">Actif</option>
               <option value="inactif">Inactif</option>
