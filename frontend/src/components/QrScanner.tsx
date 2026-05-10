@@ -35,6 +35,6 @@ export function QrScanner({ onScan, active }: Props) {
   }, [active, handleScan])
 
   return (
-    <div id={divId} className="w-full rounded-xl overflow-hidden" />
+    <div id={divId} style={{ width: '100%', minHeight: '300px' }} />
   )
 }
