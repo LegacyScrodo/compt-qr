@@ -1,1 +1,84 @@
-export function ExposantList() { return null }
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { api } from '../../api'
+import { Exposant } from '../../types'
+import { StatusBadge } from '../../components/StatusBadge'
+
+export function ExposantList() {
+  const [exposants, setExposants] = useState<Exposant[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.exposants.list().then(setExposants).finally(() => setLoading(false))
+  }, [])
+
+  async function handleDelete(id: number, nom: string) {
+    if (!confirm(`Supprimer "${nom}" ?`)) return
+    await api.exposants.delete(id)
+    setExposants(prev => prev.filter(e => e.id !== id))
+  }
+
+  async function exportPdf() {
+    const res = await api.exposants.exportPdf()
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'compt-qr-badges.pdf'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  if (loading) return <div className="text-gray-400">Chargement...</div>
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-bold">Exposants ({exposants.length})</h1>
+        <div className="flex gap-3">
+          <button onClick={exportPdf}
+            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
+            Exporter PDF
+          </button>
+          <Link to="/admin/exposants/new"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors">
+            + Ajouter
+          </Link>
+        </div>
+      </div>
+
+      <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-800 text-left">
+              <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Nom</th>
+              <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Entreprise</th>
+              <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Stand</th>
+              <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Statut</th>
+              <th className="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-800">
+            {exposants.map(e => (
+              <tr key={e.id} className="hover:bg-gray-800/50 transition-colors">
+                <td className="px-4 py-3 text-sm font-medium">{e.nom}</td>
+                <td className="px-4 py-3 text-sm text-gray-400">{e.entreprise ?? '—'}</td>
+                <td className="px-4 py-3 text-sm text-gray-400">{e.stand ?? '—'}</td>
+                <td className="px-4 py-3"><StatusBadge statut={e.statut} /></td>
+                <td className="px-4 py-3 text-right space-x-3">
+                  <Link to={`/admin/exposants/${e.id}`}
+                    className="text-sm text-blue-400 hover:text-blue-300">Éditer</Link>
+                  <button onClick={() => handleDelete(e.id!, e.nom)}
+                    className="text-sm text-red-400 hover:text-red-300">Supprimer</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {exposants.length === 0 && (
+          <div className="text-center py-12 text-gray-500">Aucun exposant enregistré.</div>
+        )}
+      </div>
+    </div>
+  )
+}
