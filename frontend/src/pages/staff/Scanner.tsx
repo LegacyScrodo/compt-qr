@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { QrScanner } from '../../components/QrScanner'
 import { api } from '../../api'
-import { Exposant } from '../../types'
+import type { Exposant } from '../../types'
 
 type Result = { ok: true; exposant: Exposant } | { ok: false; reason: string } | null
 

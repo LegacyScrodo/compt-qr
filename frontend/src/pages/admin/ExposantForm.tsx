@@ -1,7 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api } from '../../api'
-import { Exposant } from '../../types'
+import type { Exposant } from '../../types'
 import { ImageUpload } from '../../components/ImageUpload'
 
 const EMPTY: Omit<Exposant, 'uuid' | 'id'> = {

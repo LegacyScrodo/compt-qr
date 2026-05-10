@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../../api'
-import { Exposant } from '../../types'
+import type { Exposant } from '../../types'
 
 const EVENT_COLOR = import.meta.env.VITE_EVENT_COLOR ?? '#1e1b4b'
 const EVENT_NAME = import.meta.env.VITE_EVENT_NAME ?? 'Comptoir'

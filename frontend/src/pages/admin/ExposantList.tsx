@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api'
-import { Exposant } from '../../types'
+import type { Exposant } from '../../types'
 import { StatusBadge } from '../../components/StatusBadge'
 
 export function ExposantList() {
