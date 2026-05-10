@@ -14,7 +14,8 @@ export function verifyJWT(req: AuthRequest, res: Response, next: NextFunction) {
     return
   }
   try {
-    req.user = jwt.verify(token, config.jwtSecret) as User
+    const payload = jwt.verify(token, config.jwtSecret) as jwt.JwtPayload & User
+    req.user = { id: payload.id, email: payload.email, role: payload.role }
     next()
   } catch {
     res.status(401).json({ error: 'Token invalide ou expiré' })

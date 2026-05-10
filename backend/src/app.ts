@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { Request, Response, NextFunction } from 'express'
 import helmet from 'helmet'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
@@ -23,6 +23,12 @@ export function createApp() {
   app.use('/api/exposants', exposantsRouter)
 
   app.use((_req, res) => res.status(404).json({ error: 'Route introuvable' }))
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+    console.error(err.stack)
+    res.status(500).json({ error: 'Erreur serveur interne' })
+  })
 
   return app
 }
