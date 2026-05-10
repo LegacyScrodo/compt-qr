@@ -11,8 +11,8 @@ import { PublicCard } from './pages/public/PublicCard'
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <Routes>
           <Route path="/e/:uuid" element={<PublicCard />} />
           <Route path="/login" element={<LoginPage />} />
@@ -31,7 +31,7 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }

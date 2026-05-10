@@ -2,8 +2,9 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AuthGuard } from './AuthGuard'
 import { AuthContext } from '../hooks/useAuth'
+import type { AuthUser } from '../types'
 
-function wrap(user: null | { role: string; email: string; id: number }, path = '/admin') {
+function wrap(user: AuthUser | null, path = '/admin') {
   return render(
     <AuthContext.Provider value={{ user, loading: false, setUser: () => {} }}>
       <MemoryRouter initialEntries={[path]}>

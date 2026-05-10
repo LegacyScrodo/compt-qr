@@ -30,6 +30,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
       },
     })
     if (!retry.ok) throw new Error(await retry.text())
+    if (retry.status === 204) return undefined as T
     return retry.json() as Promise<T>
   }
 
