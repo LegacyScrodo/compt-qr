@@ -64,6 +64,15 @@ export const api = {
       return req<Exposant>(`/api/exposants/${id}/logo`, { method: 'POST', body: form })
     },
     exportPdf: () => fetch(`${BASE}/api/exposants/export/pdf`, { credentials: 'include' }),
+    exportCsv: () => fetch(`${BASE}/api/exposants/export/csv`, { credentials: 'include' }),
+    importCsv: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return req<{ inserted: number; skipped: number; errors: string[] }>(
+        '/api/exposants/import-csv',
+        { method: 'POST', body: form }
+      )
+    },
   },
   users: {
     list: () => req<UserProfile[]>('/api/users'),

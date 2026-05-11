@@ -63,6 +63,137 @@ exposantsRouter.get('/export/pdf', verifyJWT, requireAdmin, async (_req, res) =>
   }
 })
 
+// GET /api/exposants/export/csv — admin
+exposantsRouter.get('/export/csv', verifyJWT, requireAdmin, async (_req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT nom, entreprise, stand, email, telephone, site_web, description, statut, uuid FROM exposants ORDER BY nom ASC'
+    )
+    const escape = (v: unknown) => {
+      if (v === null || v === undefined) return ''
+      const s = String(v)
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    const headers = ['nom', 'entreprise', 'stand', 'email', 'telephone', 'site_web', 'description', 'statut', 'uuid']
+    const lines = [headers.join(',')]
+    for (const row of result.rows) {
+      lines.push(headers.map(h => escape(row[h])).join(','))
+    }
+    const csv = '﻿' + lines.join('\r\n') // BOM pour Excel
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    res.setHeader('Content-Disposition', 'attachment; filename="exposants.csv"')
+    res.send(csv)
+  } catch (err) {
+    console.error('Export CSV error:', err)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// POST /api/exposants/import-csv — admin (multipart/form-data, field "file")
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
+  fileFilter: (_req, file, cb) => {
+    const ok = /text\/csv|application\/vnd\.ms-excel|text\/plain/.test(file.mimetype)
+      || /\.csv$/i.test(file.originalname)
+    cb(null, ok)
+  },
+})
+
+exposantsRouter.post('/import-csv', verifyJWT, requireAdmin, csvUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: 'Fichier CSV requis' })
+      return
+    }
+    const text = req.file.buffer.toString('utf8').replace(/^﻿/, '')
+    const rows = parseCSV(text)
+    if (rows.length === 0) {
+      res.status(400).json({ error: 'CSV vide' })
+      return
+    }
+    const header = rows[0].map(h => h.trim().toLowerCase())
+    const colIdx = (name: string) => header.indexOf(name)
+
+    const iNom = colIdx('nom')
+    if (iNom === -1) {
+      res.status(400).json({ error: 'Colonne "nom" obligatoire dans le CSV' })
+      return
+    }
+    const iEntreprise = colIdx('entreprise')
+    const iStand = colIdx('stand')
+    const iEmail = colIdx('email')
+    const iTelephone = colIdx('telephone')
+    const iSiteWeb = colIdx('site_web')
+    const iDescription = colIdx('description')
+    const iStatut = colIdx('statut')
+
+    let inserted = 0
+    let skipped = 0
+    const errors: string[] = []
+
+    for (let r = 1; r < rows.length; r++) {
+      const row = rows[r]
+      if (row.length === 0 || (row.length === 1 && row[0] === '')) { skipped++; continue }
+      const nom = (row[iNom] ?? '').trim()
+      if (!nom) { skipped++; continue }
+      const statut = iStatut >= 0 ? (row[iStatut] ?? '').trim().toLowerCase() : 'actif'
+      const finalStatut = statut === 'inactif' ? 'inactif' : 'actif'
+
+      try {
+        await pool.query(
+          `INSERT INTO exposants (nom, entreprise, stand, email, telephone, site_web, description, statut)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [
+            nom,
+            iEntreprise >= 0 ? (row[iEntreprise] ?? '').trim() || null : null,
+            iStand >= 0 ? (row[iStand] ?? '').trim() || null : null,
+            iEmail >= 0 ? (row[iEmail] ?? '').trim() || null : null,
+            iTelephone >= 0 ? (row[iTelephone] ?? '').trim() || null : null,
+            iSiteWeb >= 0 ? (row[iSiteWeb] ?? '').trim() || null : null,
+            iDescription >= 0 ? (row[iDescription] ?? '').trim() || null : null,
+            finalStatut,
+          ]
+        )
+        inserted++
+      } catch (e) {
+        errors.push(`Ligne ${r + 1}: ${(e as Error).message}`)
+      }
+    }
+
+    res.json({ inserted, skipped, errors })
+  } catch (err) {
+    console.error('Import CSV error:', err)
+    res.status(500).json({ error: 'Erreur serveur lors de l\'import' })
+  }
+})
+
+// Tiny CSV parser (supports quoted fields with "" escapes and commas inside quotes)
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = []
+  let cur: string[] = []
+  let field = ''
+  let inQuotes = false
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++ }
+        else inQuotes = false
+      } else field += c
+    } else {
+      if (c === '"') inQuotes = true
+      else if (c === ',') { cur.push(field); field = '' }
+      else if (c === '\r') { /* skip */ }
+      else if (c === '\n') { cur.push(field); rows.push(cur); cur = []; field = '' }
+      else field += c
+    }
+  }
+  // last field
+  if (field.length > 0 || cur.length > 0) { cur.push(field); rows.push(cur) }
+  return rows
+}
+
 // GET /api/exposants/:id — admin (par ID numérique)
 exposantsRouter.get('/:id(\\d+)', verifyJWT, requireAdmin, async (req, res) => {
   try {

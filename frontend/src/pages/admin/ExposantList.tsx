@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useSearchParams } from 'react-router-dom'
-import { Search, ArrowUp, ArrowDown, ArrowUpDown, Plus } from 'lucide-react'
+import { Search, ArrowUp, ArrowDown, ArrowUpDown, Plus, Download, Upload as UploadIcon } from 'lucide-react'
 import { api } from '../../api'
 import type { Exposant } from '../../types'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -11,6 +11,7 @@ import { QrCode } from 'lucide-react'
 import { QrModal } from '../../components/QrModal'
 import { useToast } from '../../components/Toast'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ImportCsvModal } from '../../components/ImportCsvModal'
 
 type SortKey = 'nom' | 'entreprise' | 'stand' | 'statut'
 type SortDir = 'asc' | 'desc'
@@ -22,6 +23,7 @@ export function ExposantList() {
   const [qrExposant, setQrExposant] = useState<Exposant | null>(null)
   const toast = useToast()
   const [confirmDelete, setConfirmDelete] = useState<Exposant | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
 
   const [searchParams, setSearchParams] = useSearchParams()
   const urlQ = searchParams.get('q') ?? ''
@@ -143,6 +145,21 @@ export function ExposantList() {
     }
   }
 
+  async function exportCsv() {
+    try {
+      const res = await api.exposants.exportCsv()
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'exposants.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.show('error', 'Erreur lors de l\'export CSV')
+    }
+  }
+
   if (loading) return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -203,14 +220,31 @@ export function ExposantList() {
         <h1 className="text-xl font-bold">
           Exposants <span className="text-gray-400 font-normal">({filteredAndSorted.length}{hasFilters ? ` / ${exposants.length}` : ''})</span>
         </h1>
-        <div className="flex gap-2 sm:gap-3">
-          <button onClick={exportPdf}
-            className="flex-1 sm:flex-initial px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
-            Exporter PDF
+        <div className="flex flex-wrap gap-2 sm:gap-3">
+          <button
+            onClick={() => setImportOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors"
+          >
+            <UploadIcon size={14} />
+            Importer
+          </button>
+          <button
+            onClick={exportCsv}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors"
+          >
+            <Download size={14} />
+            CSV
+          </button>
+          <button
+            onClick={exportPdf}
+            className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors"
+          >
+            PDF
           </button>
           <Link to="/admin/exposants/new"
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors">
-            + Ajouter
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors">
+            <Plus size={14} />
+            Ajouter
           </Link>
         </div>
       </div>
@@ -367,6 +401,14 @@ export function ExposantList() {
         confirmLabel="Supprimer"
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(null)}
+      />
+      <ImportCsvModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => {
+          // Reload list
+          api.exposants.list().then(setExposants)
+        }}
       />
     </div>
   )
