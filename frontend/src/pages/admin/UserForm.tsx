@@ -55,7 +55,7 @@ export function UserForm() {
   return (
     <div className="max-w-md">
       <div className="flex items-center gap-3 mb-6">
-        <Link to="/admin/utilisateurs" className="text-gray-400 hover:text-white">←</Link>
+        <Link to="/admin/utilisateurs" aria-label="Retour à la liste" className="text-gray-400 hover:text-white">←</Link>
         <h1 className="text-xl font-bold">
           {isEdit ? "Modifier l'utilisateur" : 'Nouvel utilisateur'}
         </h1>
@@ -73,7 +73,7 @@ export function UserForm() {
           <input
             type="email" value={email}
             onChange={e => setEmail(e.target.value)}
-            required className={inputClass}
+            required autoComplete="off" className={inputClass}
           />
         </div>
 
@@ -88,6 +88,7 @@ export function UserForm() {
               onChange={e => setPassword(e.target.value)}
               required={!isEdit}
               minLength={8}
+              autoComplete="new-password"
               className={inputClass + ' pr-10'}
             />
             <button

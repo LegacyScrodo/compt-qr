@@ -38,7 +38,7 @@ export function LoginPage() {
         </p>
         <form onSubmit={handleSubmit} className="bg-gray-900 rounded-xl p-6 space-y-4">
           {error && (
-            <div className="bg-red-950 border border-red-800 text-red-300 rounded-lg px-4 py-3 text-sm">
+            <div role="alert" className="bg-red-950 border border-red-800 text-red-300 rounded-lg px-4 py-3 text-sm">
               {error}
             </div>
           )}
@@ -46,7 +46,7 @@ export function LoginPage() {
             <label className="block text-sm text-gray-400 mb-1">Email</label>
             <input
               type="email" value={email} onChange={e => setEmail(e.target.value)}
-              required autoFocus
+              required autoFocus autoComplete="email"
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -57,7 +57,7 @@ export function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                required
+                required autoComplete="current-password"
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button

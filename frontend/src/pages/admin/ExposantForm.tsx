@@ -74,7 +74,7 @@ export function ExposantForm() {
   return (
     <div className="max-w-2xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link to="/admin/exposants" className="text-gray-400 hover:text-white">←</Link>
+        <Link to="/admin/exposants" aria-label="Retour à la liste" className="text-gray-400 hover:text-white">←</Link>
         <h1 className="text-xl font-bold">{isEdit ? 'Modifier l\'exposant' : 'Nouvel exposant'}</h1>
       </div>
 
@@ -96,15 +96,15 @@ export function ExposantForm() {
           </div>
           <div>
             <label className={labelClass}>Email</label>
-            <input type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} className={inputClass} />
+            <input type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} autoComplete="off" className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>Téléphone</label>
-            <input type="tel" value={form.telephone ?? ''} onChange={e => set('telephone', e.target.value)} className={inputClass} />
+            <input type="tel" value={form.telephone ?? ''} onChange={e => set('telephone', e.target.value)} autoComplete="off" className={inputClass} />
           </div>
           <div className="col-span-2">
             <label className={labelClass}>Site web</label>
-            <input type="url" value={form.site_web ?? ''} onChange={e => set('site_web', e.target.value)} className={inputClass} />
+            <input type="url" value={form.site_web ?? ''} onChange={e => set('site_web', e.target.value)} autoComplete="off" className={inputClass} />
           </div>
           <div className="col-span-2">
             <label className={labelClass}>Description courte</label>
