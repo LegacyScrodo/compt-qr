@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../../api'
 import type { Exposant } from '../../types'
+import { Mail, Phone, Globe, SearchX } from 'lucide-react'
 
 const EVENT_COLOR = import.meta.env.VITE_EVENT_COLOR ?? '#1e1b4b'
 const EVENT_NAME = import.meta.env.VITE_EVENT_NAME ?? 'Comptoir'
@@ -36,7 +37,7 @@ export function PublicCard() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="text-center">
-          <div className="text-4xl mb-4">🔍</div>
+          <SearchX className="mx-auto mb-4 text-gray-300" size={48} strokeWidth={1.5} />
           <h1 className="text-xl font-semibold text-gray-700">Exposant introuvable</h1>
           <p className="text-gray-500 mt-2 text-sm">Ce QR code ne correspond à aucun exposant.</p>
         </div>
@@ -96,21 +97,27 @@ export function PublicCard() {
             {exposant.email && (
               <a href={`mailto:${exposant.email}`}
                 className="flex items-center gap-3 text-sm text-gray-700 hover:text-gray-900 group">
-                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-base group-hover:bg-gray-200 transition-colors">📧</span>
+                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                  <Mail size={16} className="text-gray-500" />
+                </span>
                 <span>{exposant.email}</span>
               </a>
             )}
             {exposant.telephone && (
               <a href={`tel:${exposant.telephone}`}
                 className="flex items-center gap-3 text-sm text-gray-700 hover:text-gray-900 group">
-                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-base group-hover:bg-gray-200 transition-colors">📞</span>
+                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                  <Phone size={16} className="text-gray-500" />
+                </span>
                 <span>{exposant.telephone}</span>
               </a>
             )}
             {exposant.site_web && (
               <a href={exposant.site_web} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-3 text-sm text-gray-700 hover:text-gray-900 group">
-                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-base group-hover:bg-gray-200 transition-colors">🌐</span>
+                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                  <Globe size={16} className="text-gray-500" />
+                </span>
                 <span className="truncate">{exposant.site_web.replace(/^https?:\/\//, '')}</span>
               </a>
             )}

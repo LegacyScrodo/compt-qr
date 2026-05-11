@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { QrScanner } from '../../components/QrScanner'
 import { api } from '../../api'
 import type { Exposant } from '../../types'
+import { CheckCircle, XCircle } from 'lucide-react'
 
 type Result = { ok: true; exposant: Exposant } | { ok: false; reason: string } | null
 
@@ -34,7 +35,12 @@ export function Scanner() {
       <div className={`flex-1 min-h-[calc(100vh-56px)] flex flex-col items-center justify-center p-8 ${
         result.ok ? 'bg-green-950' : 'bg-red-950'
       }`}>
-        <div className={`text-6xl mb-4`}>{result.ok ? '✅' : '❌'}</div>
+        <div className="mb-4">
+          {result.ok
+            ? <CheckCircle size={64} className="text-green-400 mx-auto" strokeWidth={1.5} />
+            : <XCircle size={64} className="text-red-400 mx-auto" strokeWidth={1.5} />
+          }
+        </div>
         <div className={`text-3xl font-bold mb-3 ${result.ok ? 'text-green-300' : 'text-red-300'}`}>
           {result.ok ? 'AUTORISÉ' : 'REFUSÉ'}
         </div>
