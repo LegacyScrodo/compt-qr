@@ -1,4 +1,4 @@
-import type { Exposant, AuthUser } from './types'
+import type { Exposant, AuthUser, UserProfile } from './types'
 
 const BASE = import.meta.env.VITE_API_URL ?? ''
 
@@ -50,6 +50,7 @@ export const api = {
   },
   exposants: {
     list: () => req<Exposant[]>('/api/exposants'),
+    getById: (id: number) => req<Exposant>(`/api/exposants/${id}`),
     get: (uuid: string) => req<Exposant>(`/api/exposants/${uuid}`),
     create: (data: Omit<Exposant, 'uuid' | 'id'>) =>
       req<Exposant>('/api/exposants', { method: 'POST', body: JSON.stringify(data) }),
@@ -63,5 +64,14 @@ export const api = {
       return req<Exposant>(`/api/exposants/${id}/logo`, { method: 'POST', body: form })
     },
     exportPdf: () => fetch(`${BASE}/api/exposants/export/pdf`, { credentials: 'include' }),
+  },
+  users: {
+    list: () => req<UserProfile[]>('/api/users'),
+    create: (data: { email: string; password: string; role: 'admin' | 'staff' }) =>
+      req<UserProfile>('/api/users', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: { email: string; password?: string; role: 'admin' | 'staff' }) =>
+      req<UserProfile>(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) =>
+      req<void>(`/api/users/${id}`, { method: 'DELETE' }),
   },
 }

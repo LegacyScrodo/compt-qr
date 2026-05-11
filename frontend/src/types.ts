@@ -18,3 +18,10 @@ export interface AuthUser {
   email: string
   role: 'admin' | 'staff'
 }
+
+export interface UserProfile {
+  id: number
+  email: string
+  role: 'admin' | 'staff'
+  created_at: string
+}
