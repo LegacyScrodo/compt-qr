@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, useRef, FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { api } from '../../api'
@@ -15,7 +15,8 @@ export function UserForm() {
   const [role, setRole] = useState<'admin' | 'staff'>('staff')
   const [showPassword, setShowPassword] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
+  const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     if (!isEdit) return
@@ -23,17 +24,44 @@ export function UserForm() {
       .then(list => {
         const found = list.find(u => String(u.id) === id)
         if (found) { setEmail(found.email); setRole(found.role) }
-        else setError('Utilisateur introuvable')
+        else toast.show('error', 'Utilisateur introuvable')
       })
-      .catch(() => setError('Erreur lors du chargement'))
+      .catch(() => toast.show('error', 'Erreur lors du chargement'))
   }, [id, isEdit])
+
+  function validateField(field: 'email' | 'password', value: string): string | undefined {
+    if (field === 'email') {
+      if (!value.trim()) return "L'email est obligatoire"
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Email invalide'
+    }
+    if (field === 'password') {
+      if (!isEdit && !value) return 'Mot de passe obligatoire'
+      if (value && value.length < 8) return 'Minimum 8 caractères'
+    }
+    return undefined
+  }
+
+  function handleBlur(field: 'email' | 'password', value: string) {
+    setFieldErrors(prev => ({ ...prev, [field]: validateField(field, value) }))
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!email.trim()) { setError("L'email est obligatoire"); return }
-    if (!isEdit && !password) { setError('Le mot de passe est obligatoire'); return }
+    const errors: typeof fieldErrors = {}
+    const emailErr = validateField('email', email)
+    if (emailErr) errors.email = emailErr
+    const passwordErr = validateField('password', password)
+    if (passwordErr) errors.password = passwordErr
+
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) {
+      const first = Object.keys(errors)[0] as 'email' | 'password'
+      const input = formRef.current?.querySelector(`[name="${first}"]`) as HTMLElement | null
+      input?.focus()
+      return
+    }
+
     setSaving(true)
-    setError('')
     try {
       if (isEdit) {
         await api.users.update(Number(id), { email, role, ...(password ? { password } : {}) })
@@ -49,7 +77,8 @@ export function UserForm() {
     }
   }
 
-  const inputClass = "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+  const inputClass = (hasError: boolean) =>
+    `w-full bg-gray-800 border ${hasError ? 'border-red-500' : 'border-gray-700'} rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 ${hasError ? 'focus:ring-red-500' : 'focus:ring-blue-500'}`
   const labelClass = "block text-sm text-gray-400 mb-1"
 
   return (
@@ -61,20 +90,24 @@ export function UserForm() {
         </h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-gray-900 rounded-xl p-6 space-y-4 border border-gray-800">
-        {error && (
-          <div className="bg-red-950 border border-red-800 text-red-300 rounded-lg px-4 py-3 text-sm">
-            {error}
-          </div>
-        )}
-
+      <form ref={formRef} onSubmit={handleSubmit} className="bg-gray-900 rounded-xl p-6 space-y-4 border border-gray-800">
         <div>
           <label className={labelClass}>Email *</label>
           <input
-            type="email" value={email}
+            type="email"
+            name="email"
+            value={email}
             onChange={e => setEmail(e.target.value)}
-            required autoComplete="off" className={inputClass}
+            onBlur={() => handleBlur('email', email)}
+            required
+            autoComplete="off"
+            aria-invalid={fieldErrors.email ? 'true' : undefined}
+            aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+            className={inputClass(!!fieldErrors.email)}
           />
+          {fieldErrors.email && (
+            <p id="email-error" role="alert" className="text-xs text-red-400 mt-1">{fieldErrors.email}</p>
+          )}
         </div>
 
         <div>
@@ -84,12 +117,16 @@ export function UserForm() {
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
+              name="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
+              onBlur={() => handleBlur('password', password)}
               required={!isEdit}
               minLength={8}
               autoComplete="new-password"
-              className={inputClass + ' pr-10'}
+              aria-invalid={fieldErrors.password ? 'true' : undefined}
+              aria-describedby={fieldErrors.password ? 'password-error' : undefined}
+              className={inputClass(!!fieldErrors.password) + ' pr-10'}
             />
             <button
               type="button"
@@ -100,7 +137,11 @@ export function UserForm() {
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {!isEdit && <p className="text-xs text-gray-500 mt-1">Minimum 8 caractères</p>}
+          {fieldErrors.password ? (
+            <p id="password-error" role="alert" className="text-xs text-red-400 mt-1">{fieldErrors.password}</p>
+          ) : (
+            !isEdit && <p className="text-xs text-gray-500 mt-1">Minimum 8 caractères</p>
+          )}
         </div>
 
         <div>
@@ -108,7 +149,7 @@ export function UserForm() {
           <select
             value={role}
             onChange={e => setRole(e.target.value as 'admin' | 'staff')}
-            className={inputClass}
+            className={inputClass(false)}
           >
             <option value="staff">Staff</option>
             <option value="admin">Admin</option>

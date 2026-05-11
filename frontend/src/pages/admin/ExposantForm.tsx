@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, useRef, FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api } from '../../api'
 import type { Exposant } from '../../types'
@@ -20,7 +20,8 @@ export function ExposantForm() {
   const [form, setForm] = useState(EMPTY)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof EMPTY, string>>>({})
+  const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     if (!isEdit) return
@@ -37,18 +38,57 @@ export function ExposantForm() {
         logo_file: data.logo_file,
         statut: data.statut,
       }))
-      .catch(() => setError('Exposant introuvable'))
+      .catch(() => toast.show('error', 'Exposant introuvable'))
   }, [id, isEdit])
 
   function set(field: keyof typeof EMPTY, value: string | null) {
     setForm(prev => ({ ...prev, [field]: value || null }))
   }
 
+  function validateField(field: keyof typeof EMPTY, value: string | null): string | undefined {
+    if (field === 'nom') {
+      if (!value || !value.trim()) return 'Le nom est obligatoire'
+      if (value.length > 100) return 'Maximum 100 caractères'
+    }
+    if (field === 'email' && value) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Email invalide'
+    }
+    if (field === 'site_web' && value) {
+      try { new URL(value) } catch { return 'URL invalide (ex. https://exemple.ch)' }
+    }
+    if (field === 'telephone' && value) {
+      if (!/^[+\d\s()\-.]+$/.test(value)) return 'Numéro invalide'
+    }
+    return undefined
+  }
+
+  function handleBlur(field: keyof typeof EMPTY) {
+    const value = form[field] as string | null
+    const err = validateField(field, value)
+    setFieldErrors(prev => ({ ...prev, [field]: err }))
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!form.nom.trim()) { setError('Le nom est obligatoire'); return }
+
+    // Validate all fields
+    const errors: Partial<Record<keyof typeof EMPTY, string>> = {}
+    ;(Object.keys(EMPTY) as Array<keyof typeof EMPTY>).forEach(key => {
+      const v = form[key] as string | null
+      const err = validateField(key, v)
+      if (err) errors[key] = err
+    })
+
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) {
+      // Focus first invalid
+      const first = (Object.keys(errors) as Array<keyof typeof EMPTY>)[0]
+      const input = formRef.current?.querySelector(`[name="${first}"]`) as HTMLElement | null
+      input?.focus()
+      return
+    }
+
     setSaving(true)
-    setError('')
     try {
       let saved: Exposant
       if (isEdit) {
@@ -68,7 +108,8 @@ export function ExposantForm() {
     }
   }
 
-  const inputClass = "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+  const inputClass = (hasError: boolean) =>
+    `w-full bg-gray-800 border ${hasError ? 'border-red-500' : 'border-gray-700'} rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 ${hasError ? 'focus:ring-red-500' : 'focus:ring-blue-500'}`
   const labelClass = "block text-sm text-gray-400 mb-1"
 
   return (
@@ -78,43 +119,141 @@ export function ExposantForm() {
         <h1 className="text-xl font-bold">{isEdit ? 'Modifier l\'exposant' : 'Nouvel exposant'}</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-gray-900 rounded-xl p-6 space-y-5 border border-gray-800">
-        {error && <div className="bg-red-950 border border-red-800 text-red-300 rounded-lg px-4 py-3 text-sm">{error}</div>}
-
+      <form ref={formRef} onSubmit={handleSubmit} className="bg-gray-900 rounded-xl p-6 space-y-5 border border-gray-800">
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className={labelClass}>Nom *</label>
-            <input type="text" value={form.nom} onChange={e => set('nom', e.target.value)} required className={inputClass} />
+            <input
+              type="text"
+              name="nom"
+              value={form.nom}
+              onChange={e => set('nom', e.target.value)}
+              onBlur={() => handleBlur('nom')}
+              aria-invalid={fieldErrors.nom ? 'true' : undefined}
+              aria-describedby={fieldErrors.nom ? 'nom-error' : undefined}
+              className={inputClass(!!fieldErrors.nom)}
+            />
+            {fieldErrors.nom && (
+              <p id="nom-error" role="alert" className="text-xs text-red-400 mt-1">
+                {fieldErrors.nom}
+              </p>
+            )}
           </div>
           <div>
             <label className={labelClass}>Entreprise / Stand</label>
-            <input type="text" value={form.entreprise ?? ''} onChange={e => set('entreprise', e.target.value)} className={inputClass} />
+            <input
+              type="text"
+              name="entreprise"
+              value={form.entreprise ?? ''}
+              onChange={e => set('entreprise', e.target.value)}
+              onBlur={() => handleBlur('entreprise')}
+              aria-invalid={fieldErrors.entreprise ? 'true' : undefined}
+              aria-describedby={fieldErrors.entreprise ? 'entreprise-error' : undefined}
+              className={inputClass(!!fieldErrors.entreprise)}
+            />
+            {fieldErrors.entreprise && (
+              <p id="entreprise-error" role="alert" className="text-xs text-red-400 mt-1">
+                {fieldErrors.entreprise}
+              </p>
+            )}
           </div>
           <div>
             <label className={labelClass}>Numéro de stand</label>
-            <input type="text" value={form.stand ?? ''} onChange={e => set('stand', e.target.value)} className={inputClass} />
+            <input
+              type="text"
+              name="stand"
+              value={form.stand ?? ''}
+              onChange={e => set('stand', e.target.value)}
+              onBlur={() => handleBlur('stand')}
+              aria-invalid={fieldErrors.stand ? 'true' : undefined}
+              aria-describedby={fieldErrors.stand ? 'stand-error' : undefined}
+              className={inputClass(!!fieldErrors.stand)}
+            />
+            {fieldErrors.stand && (
+              <p id="stand-error" role="alert" className="text-xs text-red-400 mt-1">
+                {fieldErrors.stand}
+              </p>
+            )}
           </div>
           <div>
             <label className={labelClass}>Email</label>
-            <input type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} autoComplete="off" className={inputClass} />
+            <input
+              type="email"
+              name="email"
+              value={form.email ?? ''}
+              onChange={e => set('email', e.target.value)}
+              onBlur={() => handleBlur('email')}
+              autoComplete="off"
+              aria-invalid={fieldErrors.email ? 'true' : undefined}
+              aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+              className={inputClass(!!fieldErrors.email)}
+            />
+            {fieldErrors.email && (
+              <p id="email-error" role="alert" className="text-xs text-red-400 mt-1">
+                {fieldErrors.email}
+              </p>
+            )}
           </div>
           <div>
             <label className={labelClass}>Téléphone</label>
-            <input type="tel" value={form.telephone ?? ''} onChange={e => set('telephone', e.target.value)} autoComplete="off" className={inputClass} />
+            <input
+              type="tel"
+              name="telephone"
+              value={form.telephone ?? ''}
+              onChange={e => set('telephone', e.target.value)}
+              onBlur={() => handleBlur('telephone')}
+              autoComplete="off"
+              aria-invalid={fieldErrors.telephone ? 'true' : undefined}
+              aria-describedby={fieldErrors.telephone ? 'telephone-error' : undefined}
+              className={inputClass(!!fieldErrors.telephone)}
+            />
+            {fieldErrors.telephone && (
+              <p id="telephone-error" role="alert" className="text-xs text-red-400 mt-1">
+                {fieldErrors.telephone}
+              </p>
+            )}
           </div>
           <div className="col-span-2">
             <label className={labelClass}>Site web</label>
-            <input type="url" value={form.site_web ?? ''} onChange={e => set('site_web', e.target.value)} autoComplete="off" className={inputClass} />
+            <input
+              type="url"
+              name="site_web"
+              value={form.site_web ?? ''}
+              onChange={e => set('site_web', e.target.value)}
+              onBlur={() => handleBlur('site_web')}
+              autoComplete="off"
+              aria-invalid={fieldErrors.site_web ? 'true' : undefined}
+              aria-describedby={fieldErrors.site_web ? 'site_web-error' : undefined}
+              className={inputClass(!!fieldErrors.site_web)}
+            />
+            {fieldErrors.site_web && (
+              <p id="site_web-error" role="alert" className="text-xs text-red-400 mt-1">
+                {fieldErrors.site_web}
+              </p>
+            )}
           </div>
           <div className="col-span-2">
             <label className={labelClass}>Description courte</label>
-            <textarea value={form.description ?? ''} onChange={e => set('description', e.target.value)}
-              rows={3} className={inputClass + ' resize-none'} />
+            <textarea
+              name="description"
+              value={form.description ?? ''}
+              onChange={e => set('description', e.target.value)}
+              onBlur={() => handleBlur('description')}
+              aria-invalid={fieldErrors.description ? 'true' : undefined}
+              aria-describedby={fieldErrors.description ? 'description-error' : undefined}
+              rows={3}
+              className={inputClass(!!fieldErrors.description) + ' resize-none'}
+            />
+            {fieldErrors.description && (
+              <p id="description-error" role="alert" className="text-xs text-red-400 mt-1">
+                {fieldErrors.description}
+              </p>
+            )}
           </div>
           <div className="col-span-2">
             <label className={labelClass}>Statut</label>
             <select value={form.statut} onChange={e => setForm(prev => ({ ...prev, statut: e.target.value as 'actif' | 'inactif' }))}
-              className={inputClass}>
+              className={inputClass(false)}>
               <option value="actif">Actif</option>
               <option value="inactif">Inactif</option>
             </select>
