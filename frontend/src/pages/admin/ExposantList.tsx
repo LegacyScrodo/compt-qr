@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import type { Exposant } from '../../types'
 import { StatusBadge } from '../../components/StatusBadge'
+import { Skeleton } from '../../components/Skeleton'
 
 export function ExposantList() {
   const [exposants, setExposants] = useState<Exposant[]>([])
@@ -38,7 +39,27 @@ export function ExposantList() {
     }
   }
 
-  if (loading) return <div className="text-gray-400">Chargement...</div>
+  if (loading) return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <Skeleton className="h-7 w-36" />
+        <div className="flex gap-3">
+          <Skeleton className="h-9 w-28" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+      </div>
+      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="px-4 py-3 border-b border-gray-800 flex items-center gap-6">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-44" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-5 w-14 rounded-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 
   return (
     <div>
