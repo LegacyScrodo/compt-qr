@@ -11,7 +11,24 @@ import { config } from './config'
 export function createApp() {
   const app = express()
 
-  app.use(helmet())
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'https:'], // permet logos externes par URL
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false, // permet image cross-origin
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }))
   app.use(cors({
     origin: config.nodeEnv === 'production' ? config.baseUrl : true,
     credentials: true,

@@ -7,3 +7,12 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 })
+
+// Limit public exposant lookups: 60 requests/minute per IP (anti-scraping)
+export const publicLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de requêtes, réessayez dans une minute' },
+})

@@ -4,6 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import { pool } from '../db/pool'
 import { verifyJWT, requireAdmin, AuthRequest } from '../middleware/auth'
+import { publicLimiter } from '../middleware/rateLimiter'
 import { Exposant } from '../types'
 import { generateQrPdf } from '../services/pdf'
 
@@ -29,7 +30,7 @@ const upload = multer({
 const PUBLIC_FIELDS = `uuid, nom, entreprise, stand, email, telephone, site_web, description, logo_url, logo_file, statut`
 
 // GET /api/exposants/:uuid — public (staff et visiteurs)
-exposantsRouter.get('/:uuid([0-9a-f-]{36})', async (req, res) => {
+exposantsRouter.get('/:uuid([0-9a-f-]{36})', publicLimiter, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT ${PUBLIC_FIELDS} FROM exposants WHERE uuid = $1`,
