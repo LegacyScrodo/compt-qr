@@ -22,11 +22,20 @@ export function ExposantForm() {
 
   useEffect(() => {
     if (!isEdit) return
-    api.exposants.list().then(list => {
-      const found = list.find(e => String(e.id) === id)
-      if (found) setForm(found)
-      else setError('Exposant introuvable')
-    }).catch(() => setError('Erreur lors du chargement'))
+    api.exposants.getById(Number(id))
+      .then(data => setForm({
+        nom: data.nom,
+        entreprise: data.entreprise,
+        stand: data.stand,
+        email: data.email,
+        telephone: data.telephone,
+        site_web: data.site_web,
+        description: data.description,
+        logo_url: data.logo_url,
+        logo_file: data.logo_file,
+        statut: data.statut,
+      }))
+      .catch(() => setError('Exposant introuvable'))
   }, [id, isEdit])
 
   function set(field: keyof typeof EMPTY, value: string | null) {
