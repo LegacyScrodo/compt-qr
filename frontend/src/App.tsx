@@ -5,6 +5,8 @@ import { LoginPage } from './pages/LoginPage'
 import { AdminLayout } from './pages/admin/AdminLayout'
 import { ExposantList } from './pages/admin/ExposantList'
 import { ExposantForm } from './pages/admin/ExposantForm'
+import { UserList } from './pages/admin/UserList'
+import { UserForm } from './pages/admin/UserForm'
 import { StaffLayout } from './pages/staff/StaffLayout'
 import { Scanner } from './pages/staff/Scanner'
 import { PublicCard } from './pages/public/PublicCard'
@@ -27,6 +29,9 @@ export default function App() {
             <Route path="exposants" element={<ExposantList />} />
             <Route path="exposants/new" element={<ExposantForm />} />
             <Route path="exposants/:id" element={<ExposantForm />} />
+            <Route path="utilisateurs" element={<UserList />} />
+            <Route path="utilisateurs/new" element={<UserForm />} />
+            <Route path="utilisateurs/:id" element={<UserForm />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/login" replace />} />
