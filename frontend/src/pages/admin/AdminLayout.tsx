@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, LogOut, ChevronDown } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { api } from '../../api'
 import { ToastProvider } from '../../components/Toast'
@@ -11,6 +11,17 @@ export function AdminLayout() {
   const location = useLocation()
   const isActive = (path: string) => location.pathname.startsWith(path)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+    function onClickOutside(e: MouseEvent) {
+      if (!userMenuRef.current?.contains(e.target as Node)) setUserMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [userMenuOpen])
 
   async function logout() {
     await api.auth.logout().catch(() => {})
@@ -44,11 +55,35 @@ export function AdminLayout() {
                 </Link>
               </div>
             </div>
-            <div className="hidden sm:flex items-center gap-4">
-              <span className="text-sm text-gray-400 truncate max-w-[200px]">{user?.email}</span>
-              <button onClick={logout} className="text-sm text-gray-400 hover:text-white transition-colors">
-                Déconnexion
+            <div ref={userMenuRef} className="hidden sm:block relative">
+              <button
+                onClick={() => setUserMenuOpen(o => !o)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors"
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+              >
+                <div className="w-7 h-7 rounded-full bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-300">
+                  {user?.email?.charAt(0).toUpperCase() ?? '?'}
+                </div>
+                <span className="text-sm text-gray-300 max-w-[180px] truncate">{user?.email}</span>
+                <ChevronDown size={14} className={`text-gray-500 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
               </button>
+              {userMenuOpen && (
+                <div role="menu" className="absolute right-0 top-full mt-1 w-56 bg-gray-900 border border-gray-800 rounded-xl shadow-xl py-1 animate-slide-up z-50">
+                  <div className="px-3 py-2 border-b border-gray-800">
+                    <div className="text-xs text-gray-500">Connecté en tant que</div>
+                    <div className="text-sm text-white truncate">{user?.email}</div>
+                  </div>
+                  <button
+                    onClick={() => { setUserMenuOpen(false); logout() }}
+                    role="menuitem"
+                    className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-2"
+                  >
+                    <LogOut size={14} />
+                    Déconnexion
+                  </button>
+                </div>
+              )}
             </div>
             <button
               onClick={() => setMenuOpen(o => !o)}

@@ -20,3 +20,14 @@
     scroll-behavior: auto !important;
   }
 }
+
+@media print {
+  body { background: white !important; }
+  body * { visibility: hidden; }
+  [role="dialog"], [role="dialog"] * { visibility: visible; }
+  [role="dialog"] {
+    position: absolute !important;
+    inset: 0 !important;
+    background: white !important;
+  }
+}

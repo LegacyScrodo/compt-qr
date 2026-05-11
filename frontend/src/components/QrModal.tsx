@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
-import { X, Download } from 'lucide-react'
+import { X, Download, Printer } from 'lucide-react'
 import type { Exposant } from '../types'
 
 interface Props {
@@ -21,28 +21,33 @@ export function QrModal({ exposant, onClose }: Props) {
     link.click()
   }
 
+  function print() {
+    window.print()
+  }
+
   return (
     <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/60 print:bg-white flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-gray-900 rounded-2xl p-6 border border-gray-800 max-w-xs w-full"
+        role="dialog"
+        className="bg-gray-900 print:bg-white rounded-2xl print:rounded-none p-6 border border-gray-800 print:border-0 max-w-xs w-full animate-slide-up print:max-w-full print:w-full print:p-0"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="font-semibold text-white">{exposant.nom}</h2>
+          <div className="print:text-black">
+            <h2 className="font-semibold text-white print:text-black">{exposant.nom}</h2>
             {exposant.entreprise && (
-              <p className="text-sm text-gray-400">{exposant.entreprise}</p>
+              <p className="text-sm text-gray-400 print:text-black">{exposant.entreprise}</p>
             )}
             {exposant.stand && (
-              <p className="text-xs text-gray-500 mt-0.5">Stand {exposant.stand}</p>
+              <p className="text-xs text-gray-500 print:text-black mt-0.5">Stand {exposant.stand}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white p-1 -mt-1 -mr-1"
+            className="text-gray-400 hover:text-white p-1 -mt-1 -mr-1 print:hidden"
             aria-label="Fermer"
           >
             <X size={20} />
@@ -53,15 +58,24 @@ export function QrModal({ exposant, onClose }: Props) {
           <QRCodeCanvas value={url} size={220} level="M" />
         </div>
 
-        <p className="text-xs text-gray-500 text-center mt-3 break-all">{url}</p>
+        <p className="text-xs text-gray-500 print:text-black text-center mt-3 break-all">{url}</p>
 
-        <button
-          onClick={download}
-          className="w-full mt-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
-        >
-          <Download size={14} />
-          Télécharger PNG
-        </button>
+        <div className="flex gap-2 mt-4 print:hidden">
+          <button
+            onClick={download}
+            className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <Download size={14} />
+            Télécharger
+          </button>
+          <button
+            onClick={print}
+            className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <Printer size={14} />
+            Imprimer
+          </button>
+        </div>
       </div>
     </div>
   )

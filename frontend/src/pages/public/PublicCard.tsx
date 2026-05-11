@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../../api'
 import type { Exposant } from '../../types'
-import { Mail, Phone, Globe, SearchX } from 'lucide-react'
+import { Mail, Phone, Globe, SearchX, Eye } from 'lucide-react'
+import { Avatar } from '../../components/Avatar'
+import { useAuth } from '../../hooks/useAuth'
 
 const EVENT_COLOR = import.meta.env.VITE_EVENT_COLOR ?? '#1e1b4b'
 const EVENT_NAME = import.meta.env.VITE_EVENT_NAME ?? 'Comptoir'
@@ -12,6 +14,7 @@ export function PublicCard() {
   const [exposant, setExposant] = useState<Exposant | null>(null)
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
 
   useEffect(() => {
     if (!uuid) return
@@ -71,6 +74,15 @@ export function PublicCard() {
         </div>
       </div>
 
+      {user?.role === 'admin' && (
+        <div className="w-full max-w-sm mb-3 print:hidden">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs font-medium">
+            <Eye size={12} />
+            Aperçu admin — visible publiquement
+          </div>
+        </div>
+      )}
+
       {/* Carte */}
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg overflow-hidden">
         {/* Bande couleur événement */}
@@ -79,16 +91,7 @@ export function PublicCard() {
         <div className="p-6">
           {/* Logo / Avatar */}
           <div className="flex items-center gap-4 mb-5">
-            {logo ? (
-              <img src={logo} alt={exposant.nom}
-                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-                className="w-16 h-16 rounded-xl object-contain border border-gray-100 bg-gray-50 p-1 flex-shrink-0" />
-            ) : (
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-2xl font-bold"
-                style={{ backgroundColor: EVENT_COLOR }}>
-                {exposant.nom.charAt(0)}
-              </div>
-            )}
+            <Avatar name={exposant.nom} logo={logo} size={64} />
             <div>
               <h1 className="text-xl font-bold text-gray-900">{exposant.nom}</h1>
               {exposant.entreprise && (

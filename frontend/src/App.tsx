@@ -10,6 +10,7 @@ import { UserForm } from './pages/admin/UserForm'
 import { StaffLayout } from './pages/staff/StaffLayout'
 import { Scanner } from './pages/staff/Scanner'
 import { PublicCard } from './pages/public/PublicCard'
+import { NotFound } from './pages/NotFound'
 
 export default function App() {
   return (
@@ -34,7 +35,7 @@ export default function App() {
             <Route path="utilisateurs/:id" element={<UserForm />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
