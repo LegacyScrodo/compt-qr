@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser'
 import path from 'path'
 import { authRouter } from './routes/auth'
 import { exposantsRouter } from './routes/exposants'
+import { usersRouter } from './routes/users'
 import { config } from './config'
 
 export function createApp() {
@@ -21,6 +22,7 @@ export function createApp() {
 
   app.use('/api/auth', authRouter)
   app.use('/api/exposants', exposantsRouter)
+  app.use('/api/users', usersRouter)
 
   app.use((_req, res) => res.status(404).json({ error: 'Route introuvable' }))
 
