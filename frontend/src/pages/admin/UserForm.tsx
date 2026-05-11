@@ -2,12 +2,14 @@ import { useState, useEffect, FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { api } from '../../api'
+import { useToast } from '../../components/Toast'
 
 export function UserForm() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
   const navigate = useNavigate()
 
+  const toast = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<'admin' | 'staff'>('staff')
@@ -38,9 +40,10 @@ export function UserForm() {
       } else {
         await api.users.create({ email, password, role })
       }
+      toast.show('success', isEdit ? 'Utilisateur mis à jour' : 'Utilisateur créé')
       navigate('/admin/utilisateurs')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inattendue')
+      toast.show('error', err instanceof Error ? err.message : 'Erreur inattendue')
     } finally {
       setSaving(false)
     }

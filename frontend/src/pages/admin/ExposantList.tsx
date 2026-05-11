@@ -8,25 +8,31 @@ import { Skeleton } from '../../components/Skeleton'
 import { StatsBar } from '../../components/StatsBar'
 import { QrCode } from 'lucide-react'
 import { QrModal } from '../../components/QrModal'
+import { useToast } from '../../components/Toast'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 
 export function ExposantList() {
   const [exposants, setExposants] = useState<Exposant[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [qrExposant, setQrExposant] = useState<Exposant | null>(null)
+  const toast = useToast()
+  const [confirmDelete, setConfirmDelete] = useState<Exposant | null>(null)
 
   useEffect(() => {
     api.exposants.list().then(setExposants).finally(() => setLoading(false))
   }, [])
 
-  async function handleDelete(id: number, nom: string) {
-    if (!confirm(`Supprimer "${nom}" ?`)) return
+  async function handleDelete() {
+    if (!confirmDelete?.id) return
+    const exposant = confirmDelete
+    setConfirmDelete(null)
     try {
-      await api.exposants.delete(id)
-      setExposants(prev => prev.filter(e => e.id !== id))
+      await api.exposants.delete(exposant.id!)
+      setExposants(prev => prev.filter(e => e.id !== exposant.id))
+      toast.show('success', `"${exposant.nom}" supprimé`)
     } catch {
-      setError('Erreur lors de la suppression')
+      toast.show('error', 'Erreur lors de la suppression')
     }
   }
 
@@ -41,7 +47,7 @@ export function ExposantList() {
       a.click()
       URL.revokeObjectURL(url)
     } catch {
-      setError('Erreur lors de l\'export PDF')
+      toast.show('error', 'Erreur lors de l\'export PDF')
     }
   }
 
@@ -78,11 +84,6 @@ export function ExposantList() {
   return (
     <div>
       <StatsBar exposants={exposants} />
-      {error && (
-        <div className="mb-4 bg-red-950 border border-red-800 text-red-300 rounded-lg px-4 py-3 text-sm">
-          {error}
-        </div>
-      )}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold">Exposants ({filtered.length})</h1>
         <div className="flex gap-3">
@@ -136,7 +137,7 @@ export function ExposantList() {
                   </button>
                   <Link to={`/admin/exposants/${e.id}`}
                     className="text-sm text-blue-400 hover:text-blue-300">Éditer</Link>
-                  <button onClick={() => handleDelete(e.id!, e.nom)}
+                  <button onClick={() => setConfirmDelete(e)}
                     className="text-sm text-red-400 hover:text-red-300">Supprimer</button>
                 </td>
               </tr>
@@ -152,6 +153,15 @@ export function ExposantList() {
       {qrExposant && (
         <QrModal exposant={qrExposant} onClose={() => setQrExposant(null)} />
       )}
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        destructive
+        title="Supprimer l'exposant"
+        message={`Cette action est irréversible. "${confirmDelete?.nom}" sera définitivement supprimé.`}
+        confirmLabel="Supprimer"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   )
 }

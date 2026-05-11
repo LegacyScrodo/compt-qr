@@ -4,27 +4,33 @@ import { api } from '../../api'
 import type { UserProfile } from '../../types'
 import { useAuth } from '../../hooks/useAuth'
 import { Skeleton } from '../../components/Skeleton'
+import { useToast } from '../../components/Toast'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 
 export function UserList() {
   const { user } = useAuth()
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const toast = useToast()
+  const [confirmDelete, setConfirmDelete] = useState<UserProfile | null>(null)
 
   useEffect(() => {
     api.users.list()
       .then(setUsers)
-      .catch(() => setError('Erreur lors du chargement'))
+      .catch(() => toast.show('error', 'Erreur lors du chargement'))
       .finally(() => setLoading(false))
   }, [])
 
-  async function handleDelete(id: number, email: string) {
-    if (!confirm(`Supprimer l'utilisateur "${email}" ?`)) return
+  async function handleDelete() {
+    if (!confirmDelete) return
+    const u = confirmDelete
+    setConfirmDelete(null)
     try {
-      await api.users.delete(id)
-      setUsers(prev => prev.filter(u => u.id !== id))
+      await api.users.delete(u.id)
+      setUsers(prev => prev.filter(x => x.id !== u.id))
+      toast.show('success', `Utilisateur "${u.email}" supprimé`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression')
+      toast.show('error', err instanceof Error ? err.message : 'Erreur lors de la suppression')
     }
   }
 
@@ -48,11 +54,6 @@ export function UserList() {
 
   return (
     <div>
-      {error && (
-        <div className="mb-4 bg-red-950 border border-red-800 text-red-300 rounded-lg px-4 py-3 text-sm">
-          {error}
-        </div>
-      )}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold">Utilisateurs ({users.length})</h1>
         <Link to="/admin/utilisateurs/new"
@@ -96,7 +97,7 @@ export function UserList() {
                   <Link to={`/admin/utilisateurs/${u.id}`}
                     className="text-sm text-blue-400 hover:text-blue-300">Éditer</Link>
                   {u.id !== user?.id && (
-                    <button onClick={() => handleDelete(u.id, u.email)}
+                    <button onClick={() => setConfirmDelete(u)}
                       className="text-sm text-red-400 hover:text-red-300">Supprimer</button>
                   )}
                 </td>
@@ -108,6 +109,15 @@ export function UserList() {
           <div className="text-center py-12 text-gray-500">Aucun utilisateur enregistré.</div>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        destructive
+        title="Supprimer l'utilisateur"
+        message={`L'utilisateur "${confirmDelete?.email}" sera définitivement supprimé.`}
+        confirmLabel="Supprimer"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   )
 }

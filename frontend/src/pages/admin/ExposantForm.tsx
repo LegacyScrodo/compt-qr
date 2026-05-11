@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api } from '../../api'
 import type { Exposant } from '../../types'
 import { ImageUpload } from '../../components/ImageUpload'
+import { useToast } from '../../components/Toast'
 
 const EMPTY: Omit<Exposant, 'uuid' | 'id'> = {
   nom: '', entreprise: null, stand: null, email: null,
@@ -15,6 +16,7 @@ export function ExposantForm() {
   const isEdit = Boolean(id)
   const navigate = useNavigate()
 
+  const toast = useToast()
   const [form, setForm] = useState(EMPTY)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
@@ -57,9 +59,10 @@ export function ExposantForm() {
       if (logoFile && saved.id) {
         await api.exposants.uploadLogo(saved.id, logoFile)
       }
+      toast.show('success', isEdit ? 'Exposant mis à jour' : 'Exposant créé')
       navigate('/admin/exposants')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inattendue')
+      toast.show('error', err instanceof Error ? err.message : 'Erreur inattendue')
     } finally {
       setSaving(false)
     }
