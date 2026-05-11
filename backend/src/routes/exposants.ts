@@ -63,6 +63,24 @@ exposantsRouter.get('/export/pdf', verifyJWT, requireAdmin, async (_req, res) =>
   }
 })
 
+// GET /api/exposants/:id — admin (par ID numérique)
+exposantsRouter.get('/:id(\\d+)', verifyJWT, requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM exposants WHERE id = $1',
+      [req.params.id]
+    )
+    if (!result.rows[0]) {
+      res.status(404).json({ error: 'Exposant introuvable' })
+      return
+    }
+    res.json(result.rows[0])
+  } catch (err) {
+    console.error('GET exposant by id error:', err)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 // GET /api/exposants — admin
 exposantsRouter.get('/', verifyJWT, requireAdmin, async (_req, res) => {
   try {
