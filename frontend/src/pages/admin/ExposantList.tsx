@@ -6,12 +6,15 @@ import type { Exposant } from '../../types'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Skeleton } from '../../components/Skeleton'
 import { StatsBar } from '../../components/StatsBar'
+import { QrCode } from 'lucide-react'
+import { QrModal } from '../../components/QrModal'
 
 export function ExposantList() {
   const [exposants, setExposants] = useState<Exposant[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [qrExposant, setQrExposant] = useState<Exposant | null>(null)
 
   useEffect(() => {
     api.exposants.list().then(setExposants).finally(() => setLoading(false))
@@ -124,6 +127,13 @@ export function ExposantList() {
                 <td className="px-4 py-3 text-sm text-gray-400">{e.stand ?? '—'}</td>
                 <td className="px-4 py-3"><StatusBadge statut={e.statut} /></td>
                 <td className="px-4 py-3 text-right space-x-3">
+                  <button
+                    onClick={() => setQrExposant(e)}
+                    className="text-sm text-gray-400 hover:text-white inline-flex items-center"
+                    aria-label={`QR code de ${e.nom}`}
+                  >
+                    <QrCode size={15} />
+                  </button>
                   <Link to={`/admin/exposants/${e.id}`}
                     className="text-sm text-blue-400 hover:text-blue-300">Éditer</Link>
                   <button onClick={() => handleDelete(e.id!, e.nom)}
@@ -139,6 +149,9 @@ export function ExposantList() {
           </div>
         )}
       </div>
+      {qrExposant && (
+        <QrModal exposant={qrExposant} onClose={() => setQrExposant(null)} />
+      )}
     </div>
   )
 }
