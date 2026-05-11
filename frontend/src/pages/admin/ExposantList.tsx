@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Search } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { Search, ArrowUp, ArrowDown, ArrowUpDown, Plus } from 'lucide-react'
 import { api } from '../../api'
 import type { Exposant } from '../../types'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -11,17 +12,108 @@ import { QrModal } from '../../components/QrModal'
 import { useToast } from '../../components/Toast'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 
+type SortKey = 'nom' | 'entreprise' | 'stand' | 'statut'
+type SortDir = 'asc' | 'desc'
+type StatusFilter = 'all' | 'actif' | 'inactif'
+
 export function ExposantList() {
   const [exposants, setExposants] = useState<Exposant[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
   const [qrExposant, setQrExposant] = useState<Exposant | null>(null)
   const toast = useToast()
   const [confirmDelete, setConfirmDelete] = useState<Exposant | null>(null)
 
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlQ = searchParams.get('q') ?? ''
+  const urlStatut = (searchParams.get('statut') as StatusFilter) ?? 'all'
+  const urlSort = (searchParams.get('sort') as SortKey) ?? 'nom'
+  const urlDir = (searchParams.get('dir') as SortDir) ?? 'asc'
+
+  const [searchInput, setSearchInput] = useState(urlQ)
+  const [search, setSearch] = useState(urlQ)
+  const searchRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     api.exposants.list().then(setExposants).finally(() => setLoading(false))
   }, [])
+
+  // Debounce 300ms: searchInput → search → URL
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput)
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev)
+        if (searchInput) next.set('q', searchInput)
+        else next.delete('q')
+        return next
+      }, { replace: true })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [searchInput, setSearchParams])
+
+  // Cmd+K / Ctrl+K → focus
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        searchRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  function setStatusFilter(value: StatusFilter) {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (value === 'all') next.delete('statut')
+      else next.set('statut', value)
+      return next
+    }, { replace: true })
+  }
+
+  function toggleSort(key: SortKey) {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (urlSort === key) {
+        if (urlDir === 'asc') next.set('dir', 'desc')
+        else { next.delete('sort'); next.delete('dir') }
+      } else {
+        next.set('sort', key)
+        next.set('dir', 'asc')
+      }
+      return next
+    }, { replace: true })
+  }
+
+  const filteredAndSorted = useMemo(() => {
+    const q = search.toLowerCase()
+    const filtered = exposants.filter(e => {
+      const matchesQ = !q
+        || e.nom.toLowerCase().includes(q)
+        || (e.entreprise ?? '').toLowerCase().includes(q)
+        || (e.stand ?? '').toLowerCase().includes(q)
+      const matchesStatus = urlStatut === 'all' || e.statut === urlStatut
+      return matchesQ && matchesStatus
+    })
+
+    const sorted = [...filtered].sort((a, b) => {
+      const av = (a[urlSort] ?? '').toString().toLowerCase()
+      const bv = (b[urlSort] ?? '').toString().toLowerCase()
+      if (av === bv) return 0
+      const cmp = av < bv ? -1 : 1
+      return urlDir === 'asc' ? cmp : -cmp
+    })
+
+    return sorted
+  }, [exposants, search, urlStatut, urlSort, urlDir])
+
+  const hasFilters = search !== '' || urlStatut !== 'all'
+
+  function resetFilters() {
+    setSearchInput('')
+    setSearchParams(new URLSearchParams(), { replace: true })
+  }
 
   async function handleDelete() {
     if (!confirmDelete?.id) return
@@ -51,14 +143,6 @@ export function ExposantList() {
     }
   }
 
-  const filtered = exposants.filter(e => {
-    const q = search.toLowerCase()
-    return !q
-      || e.nom.toLowerCase().includes(q)
-      || (e.entreprise ?? '').toLowerCase().includes(q)
-      || (e.stand ?? '').toLowerCase().includes(q)
-  })
-
   if (loading) return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -81,11 +165,44 @@ export function ExposantList() {
     </div>
   )
 
+  const emptyState = (
+    <div className="text-center py-16 px-4">
+      {exposants.length === 0 ? (
+        <>
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-800 mb-4">
+            <Plus size={24} className="text-gray-400" />
+          </div>
+          <h3 className="text-white font-semibold mb-1">Aucun exposant pour le moment</h3>
+          <p className="text-sm text-gray-400 mb-5">Ajoutez votre premier exposant pour générer son badge QR.</p>
+          <Link
+            to="/admin/exposants/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white transition-colors"
+          >
+            <Plus size={16} />
+            Créer le premier exposant
+          </Link>
+        </>
+      ) : (
+        <>
+          <p className="text-gray-400 mb-3">Aucun résultat pour ces filtres.</p>
+          <button
+            onClick={resetFilters}
+            className="text-sm text-blue-400 hover:text-blue-300"
+          >
+            Réinitialiser les filtres
+          </button>
+        </>
+      )}
+    </div>
+  )
+
   return (
     <div>
       <StatsBar exposants={exposants} />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <h1 className="text-xl font-bold">Exposants ({filtered.length})</h1>
+        <h1 className="text-xl font-bold">
+          Exposants <span className="text-gray-400 font-normal">({filteredAndSorted.length}{hasFilters ? ` / ${exposants.length}` : ''})</span>
+        </h1>
         <div className="flex gap-2 sm:gap-3">
           <button onClick={exportPdf}
             className="flex-1 sm:flex-initial px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
@@ -98,15 +215,41 @@ export function ExposantList() {
         </div>
       </div>
 
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        {([
+          { value: 'all' as const, label: 'Tous' },
+          { value: 'actif' as const, label: 'Actifs' },
+          { value: 'inactif' as const, label: 'Inactifs' },
+        ]).map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => setStatusFilter(opt.value)}
+            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              urlStatut === opt.value
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-900 border border-gray-800 text-gray-400 hover:text-white'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Search input */}
       <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         <input
+          ref={searchRef}
           type="text"
           placeholder="Rechercher par nom, entreprise ou stand…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
+          className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-16 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+        <kbd className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-1 px-1.5 py-0.5 rounded border border-gray-700 bg-gray-800 text-[10px] text-gray-400">
+          <span>⌘</span>K
+        </kbd>
       </div>
 
       {/* Desktop table - visible from sm: */}
@@ -115,15 +258,30 @@ export function ExposantList() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-800 text-left">
-                <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Nom</th>
-                <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Entreprise</th>
-                <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Stand</th>
-                <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Statut</th>
+                {([
+                  { key: 'nom' as const, label: 'Nom' },
+                  { key: 'entreprise' as const, label: 'Entreprise' },
+                  { key: 'stand' as const, label: 'Stand' },
+                  { key: 'statut' as const, label: 'Statut' },
+                ]).map(col => (
+                  <th key={col.key} className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">
+                    <button
+                      onClick={() => toggleSort(col.key)}
+                      className="inline-flex items-center gap-1 hover:text-white transition-colors"
+                    >
+                      {col.label}
+                      {urlSort === col.key
+                        ? (urlDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)
+                        : <ArrowUpDown size={12} className="opacity-40" />
+                      }
+                    </button>
+                  </th>
+                ))}
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
-              {filtered.map(e => (
+              {filteredAndSorted.map(e => (
                 <tr key={e.id} className="hover:bg-gray-800/50 transition-colors">
                   <td className="px-4 py-3 text-sm font-medium">{e.nom}</td>
                   <td className="px-4 py-3 text-sm text-gray-400">{e.entreprise ?? '—'}</td>
@@ -157,16 +315,12 @@ export function ExposantList() {
             </tbody>
           </table>
         </div>
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            {search ? 'Aucun résultat pour cette recherche.' : 'Aucun exposant enregistré.'}
-          </div>
-        )}
+        {filteredAndSorted.length === 0 && emptyState}
       </div>
 
       {/* Mobile cards - visible < sm */}
       <div className="sm:hidden space-y-3">
-        {filtered.map(e => (
+        {filteredAndSorted.map(e => (
           <div key={e.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="min-w-0 flex-1">
@@ -199,12 +353,9 @@ export function ExposantList() {
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            {search ? 'Aucun résultat pour cette recherche.' : 'Aucun exposant enregistré.'}
-          </div>
-        )}
+        {filteredAndSorted.length === 0 && emptyState}
       </div>
+
       {qrExposant && (
         <QrModal exposant={qrExposant} onClose={() => setQrExposant(null)} />
       )}
