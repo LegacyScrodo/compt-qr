@@ -26,7 +26,9 @@ export function QrScanner({ onScan, active }: Props) {
       { fps: 10, qrbox: { width: 260, height: 260 } },
       handleScan,
       undefined
-    ).catch(console.error)
+    ).catch(err => {
+      console.error('Camera error:', err)
+    })
 
     return () => {
       scanner.stop().catch(() => {})

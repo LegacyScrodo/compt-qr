@@ -84,15 +84,15 @@ export function ExposantList() {
   return (
     <div>
       <StatsBar exposants={exposants} />
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <h1 className="text-xl font-bold">Exposants ({filtered.length})</h1>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <button onClick={exportPdf}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
+            className="flex-1 sm:flex-initial px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
             Exporter PDF
           </button>
           <Link to="/admin/exposants/new"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors">
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors">
             + Ajouter
           </Link>
         </div>
@@ -109,41 +109,96 @@ export function ExposantList() {
         />
       </div>
 
-      <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-800 text-left">
-              <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Nom</th>
-              <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Entreprise</th>
-              <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Stand</th>
-              <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Statut</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800">
-            {filtered.map(e => (
-              <tr key={e.id} className="hover:bg-gray-800/50 transition-colors">
-                <td className="px-4 py-3 text-sm font-medium">{e.nom}</td>
-                <td className="px-4 py-3 text-sm text-gray-400">{e.entreprise ?? '—'}</td>
-                <td className="px-4 py-3 text-sm text-gray-400">{e.stand ?? '—'}</td>
-                <td className="px-4 py-3"><StatusBadge statut={e.statut} /></td>
-                <td className="px-4 py-3 text-right space-x-3">
-                  <button
-                    onClick={() => setQrExposant(e)}
-                    className="text-sm text-gray-400 hover:text-white inline-flex items-center"
-                    aria-label={`QR code de ${e.nom}`}
-                  >
-                    <QrCode size={15} />
-                  </button>
-                  <Link to={`/admin/exposants/${e.id}`}
-                    className="text-sm text-blue-400 hover:text-blue-300">Éditer</Link>
-                  <button onClick={() => setConfirmDelete(e)}
-                    className="text-sm text-red-400 hover:text-red-300">Supprimer</button>
-                </td>
+      {/* Desktop table - visible from sm: */}
+      <div className="hidden sm:block bg-gray-900 rounded-xl overflow-hidden border border-gray-800">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-800 text-left">
+                <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Nom</th>
+                <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Entreprise</th>
+                <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Stand</th>
+                <th className="px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wider">Statut</th>
+                <th className="px-4 py-3"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {filtered.map(e => (
+                <tr key={e.id} className="hover:bg-gray-800/50 transition-colors">
+                  <td className="px-4 py-3 text-sm font-medium">{e.nom}</td>
+                  <td className="px-4 py-3 text-sm text-gray-400">{e.entreprise ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-400">{e.stand ?? '—'}</td>
+                  <td className="px-4 py-3"><StatusBadge statut={e.statut} /></td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        onClick={() => setQrExposant(e)}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                        aria-label={`QR code de ${e.nom}`}
+                      >
+                        <QrCode size={16} />
+                      </button>
+                      <Link
+                        to={`/admin/exposants/${e.id}`}
+                        className="inline-flex items-center justify-center h-9 px-3 rounded-lg text-sm text-blue-400 hover:text-blue-300 hover:bg-gray-800 transition-colors"
+                      >
+                        Éditer
+                      </Link>
+                      <button
+                        onClick={() => setConfirmDelete(e)}
+                        className="inline-flex items-center justify-center h-9 px-3 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {filtered.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            {search ? 'Aucun résultat pour cette recherche.' : 'Aucun exposant enregistré.'}
+          </div>
+        )}
+      </div>
+
+      {/* Mobile cards - visible < sm */}
+      <div className="sm:hidden space-y-3">
+        {filtered.map(e => (
+          <div key={e.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <div className="flex items-start justify-between mb-2">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-white truncate">{e.nom}</div>
+                {e.entreprise && <div className="text-sm text-gray-400 truncate">{e.entreprise}</div>}
+              </div>
+              <StatusBadge statut={e.statut} />
+            </div>
+            {e.stand && <div className="text-xs text-gray-500 mb-3">Stand {e.stand}</div>}
+            <div className="flex items-center gap-2 pt-3 border-t border-gray-800">
+              <button
+                onClick={() => setQrExposant(e)}
+                className="inline-flex items-center justify-center w-11 h-11 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                aria-label={`QR code de ${e.nom}`}
+              >
+                <QrCode size={18} />
+              </button>
+              <Link
+                to={`/admin/exposants/${e.id}`}
+                className="flex-1 inline-flex items-center justify-center h-11 px-3 rounded-lg text-sm text-blue-400 hover:text-blue-300 bg-gray-800/50 hover:bg-gray-800 transition-colors"
+              >
+                Éditer
+              </Link>
+              <button
+                onClick={() => setConfirmDelete(e)}
+                className="inline-flex items-center justify-center h-11 px-3 rounded-lg text-sm text-red-400 hover:text-red-300 bg-gray-800/50 hover:bg-gray-800 transition-colors"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        ))}
         {filtered.length === 0 && (
           <div className="text-center py-12 text-gray-500">
             {search ? 'Aucun résultat pour cette recherche.' : 'Aucun exposant enregistré.'}
