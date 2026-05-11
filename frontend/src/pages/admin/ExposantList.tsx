@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Search } from 'lucide-react'
 import { api } from '../../api'
 import type { Exposant } from '../../types'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Skeleton } from '../../components/Skeleton'
+import { StatsBar } from '../../components/StatsBar'
 
 export function ExposantList() {
   const [exposants, setExposants] = useState<Exposant[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     api.exposants.list().then(setExposants).finally(() => setLoading(false))
@@ -39,6 +42,14 @@ export function ExposantList() {
     }
   }
 
+  const filtered = exposants.filter(e => {
+    const q = search.toLowerCase()
+    return !q
+      || e.nom.toLowerCase().includes(q)
+      || (e.entreprise ?? '').toLowerCase().includes(q)
+      || (e.stand ?? '').toLowerCase().includes(q)
+  })
+
   if (loading) return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -63,13 +74,14 @@ export function ExposantList() {
 
   return (
     <div>
+      <StatsBar exposants={exposants} />
       {error && (
         <div className="mb-4 bg-red-950 border border-red-800 text-red-300 rounded-lg px-4 py-3 text-sm">
           {error}
         </div>
       )}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Exposants ({exposants.length})</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold">Exposants ({filtered.length})</h1>
         <div className="flex gap-3">
           <button onClick={exportPdf}
             className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
@@ -80,6 +92,17 @@ export function ExposantList() {
             + Ajouter
           </Link>
         </div>
+      </div>
+
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Rechercher par nom, entreprise ou stand…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
 
       <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800">
@@ -94,7 +117,7 @@ export function ExposantList() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
-            {exposants.filter(e => e.id !== undefined).map(e => (
+            {filtered.map(e => (
               <tr key={e.id} className="hover:bg-gray-800/50 transition-colors">
                 <td className="px-4 py-3 text-sm font-medium">{e.nom}</td>
                 <td className="px-4 py-3 text-sm text-gray-400">{e.entreprise ?? '—'}</td>
@@ -110,8 +133,10 @@ export function ExposantList() {
             ))}
           </tbody>
         </table>
-        {exposants.length === 0 && (
-          <div className="text-center py-12 text-gray-500">Aucun exposant enregistré.</div>
+        {filtered.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            {search ? 'Aucun résultat pour cette recherche.' : 'Aucun exposant enregistré.'}
+          </div>
         )}
       </div>
     </div>
