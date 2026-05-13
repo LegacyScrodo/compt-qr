@@ -124,10 +124,16 @@ plansRouter.post('/:id(\\d+)/image', verifyJWT, requireAdmin, upload.single('ima
     if (!current.rows[0]) { res.status(404).json({ error: 'Plan introuvable' }); return }
 
     const newImagePath = writePlanImage(req.file.buffer, req.file.originalname)
-    const result = await pool.query(
-      'UPDATE plans SET image_file = $1 WHERE id = $2 RETURNING *',
-      [newImagePath, req.params.id]
-    )
+    let result
+    try {
+      result = await pool.query(
+        'UPDATE plans SET image_file = $1 WHERE id = $2 RETURNING *',
+        [newImagePath, req.params.id]
+      )
+    } catch (dbErr) {
+      deletePlanImage(newImagePath)
+      throw dbErr
+    }
     deletePlanImage(current.rows[0].image_file)
     res.json(result.rows[0])
   } catch (err) {
