@@ -11,16 +11,20 @@ import { generateQrPdf } from '../services/pdf'
 export const exposantsRouter = Router()
 
 const uploadsDir = path.join(__dirname, '..', '..', 'uploads')
-const storage = multer.diskStorage({
-  destination: uploadsDir,
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname)
-    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`)
-  },
-})
+
+// Validates image magic bytes — MIME headers from the client cannot be trusted
+function isImageMagicBytes(buf: Buffer): boolean {
+  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return true // JPEG
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true // PNG
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return true // GIF
+  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return true // WebP
+  return false
+}
+
 const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     cb(null, /image\/(jpeg|png|webp|gif)/.test(file.mimetype))
   },
@@ -213,10 +217,15 @@ exposantsRouter.get('/:id(\\d+)', verifyJWT, requireAdmin, async (req, res) => {
   }
 })
 
-// GET /api/exposants — admin
-exposantsRouter.get('/', verifyJWT, requireAdmin, async (_req, res) => {
+// GET /api/exposants — admin (?limit=500&offset=0)
+exposantsRouter.get('/', verifyJWT, requireAdmin, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM exposants ORDER BY nom ASC')
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '500'), 10) || 500, 1), 1000)
+    const offset = Math.max(parseInt(String(req.query.offset ?? '0'), 10) || 0, 0)
+    const result = await pool.query(
+      'SELECT * FROM exposants ORDER BY nom ASC LIMIT $1 OFFSET $2',
+      [limit, offset]
+    )
     res.json(result.rows)
   } catch (err) {
     console.error('List exposants error:', err)
@@ -299,12 +308,22 @@ exposantsRouter.post('/:id(\\d+)/logo', verifyJWT, requireAdmin, upload.single('
       res.status(400).json({ error: 'Fichier image requis (jpeg, png, webp, gif, max 5 MB)' })
       return
     }
-    const newLogoFile = `/uploads/${req.file.filename}`
 
-    // Fetch old logo before updating so we can clean it up
+    if (!isImageMagicBytes(req.file.buffer)) {
+      res.status(400).json({ error: 'Type de fichier non valide' })
+      return
+    }
+
+    const ext = path.extname(req.file.originalname).toLowerCase() || '.bin'
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+    const destPath = path.join(uploadsDir, filename)
+    fs.writeFileSync(destPath, req.file.buffer)
+
+    const newLogoFile = `/uploads/${filename}`
+
     const current = await pool.query('SELECT logo_file FROM exposants WHERE id = $1', [req.params.id])
     if (!current.rows[0]) {
-      fs.unlink(path.join(uploadsDir, req.file.filename), () => {})
+      fs.unlink(destPath, () => {})
       res.status(404).json({ error: 'Exposant introuvable' })
       return
     }
@@ -314,7 +333,6 @@ exposantsRouter.post('/:id(\\d+)/logo', verifyJWT, requireAdmin, upload.single('
       [newLogoFile, req.params.id]
     )
 
-    // Delete old logo file if it existed
     const oldLogoFile = current.rows[0].logo_file as string | null
     if (oldLogoFile) {
       fs.unlink(path.join(uploadsDir, path.basename(oldLogoFile)), (err) => {
@@ -324,10 +342,6 @@ exposantsRouter.post('/:id(\\d+)/logo', verifyJWT, requireAdmin, upload.single('
 
     res.json(result.rows[0])
   } catch (err) {
-    // Clean up uploaded file on any error
-    if (req.file) {
-      fs.unlink(path.join(uploadsDir, req.file.filename), () => {})
-    }
     console.error('Upload logo error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
   }

@@ -28,6 +28,10 @@ usersRouter.post('/', verifyJWT, requireAdmin, async (req, res) => {
       res.status(400).json({ error: 'Email, mot de passe et rôle sont obligatoires' })
       return
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ error: 'Email invalide' })
+      return
+    }
     if (!['admin', 'staff'].includes(role)) {
       res.status(400).json({ error: 'Rôle invalide' })
       return
@@ -60,6 +64,10 @@ usersRouter.put('/:id(\\d+)', verifyJWT, requireAdmin, async (req, res) => {
     }
     if (!email || !role) {
       res.status(400).json({ error: 'Email et rôle sont obligatoires' })
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ error: 'Email invalide' })
       return
     }
     if (!['admin', 'staff'].includes(role)) {

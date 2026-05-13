@@ -1,10 +1,24 @@
 services:
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    environment:
+      CONTAINERS: 1
+      NETWORKS: 1
+      SERVICES: 1
+      TASKS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket-proxy
+    restart: unless-stopped
+
   traefik:
     image: traefik:v3.1
     command:
       - --api.insecure=false
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
+      - --providers.docker.endpoint=tcp://socket-proxy:2375
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
@@ -18,8 +32,12 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./acme.json:/acme.json
+    networks:
+      - socket-proxy
+      - default
+    depends_on:
+      - socket-proxy
     restart: unless-stopped
 
   frontend:
@@ -63,3 +81,7 @@ services:
 volumes:
   pgdata:
   uploads:
+
+networks:
+  socket-proxy:
+    internal: true

@@ -1,6 +1,5 @@
--- Mot de passe: "admin2027" pour admin, "staff2027" pour staff
--- Ces hashes bcrypt correspondent aux mots de passe ci-dessus (coût 12)
--- Régénérer en prod avec: node -e "const b=require('bcrypt');b.hash('monmdp',12).then(console.log)"
+-- Hashes bcrypt (coût 12) — régénérer en prod avec:
+-- node -e "const b=require('bcrypt');b.hash('monmdp',12).then(console.log)"
 INSERT INTO users (email, password, role) VALUES
   ('admin@comptoir.ch', '$2b$12$OXco.0NmnyjigeJsvq3Rhe929JV24zfs5qpo56yZnqs3PSstD5QCW', 'admin'),
   ('staff@comptoir.ch',  '$2b$12$Grfel4HwKQ5zriyB49OcG.JJbxOk2Uqk.5zR.45n4vVkipkBbGXfO', 'staff')

@@ -4,13 +4,13 @@ import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import { pool } from '../db/pool'
 import { config } from '../config'
-import { authLimiter } from '../middleware/rateLimiter'
+import { authLimiter, refreshLimiter } from '../middleware/rateLimiter'
 import { verifyJWT, AuthRequest } from '../middleware/auth'
 
 export const authRouter = Router()
 
-// Dummy hash used to prevent timing oracle on unknown emails
-const DUMMY_HASH = '$2b$12$invalidhashpadding00000000000000000000000000000000000000'
+// Pre-computed valid bcrypt hash (cost 12) used to prevent timing oracle on unknown emails
+const DUMMY_HASH = '$2b$12$UPxfGiLBs3sBp438kYHSaeKH4YP1FoapRbHi89.OceKR8plsHB1cC'
 
 function setAccessCookie(res: import('express').Response, token: string, role: string) {
   const maxAge = role === 'admin'
@@ -95,7 +95,7 @@ authRouter.post('/logout', verifyJWT, async (req: AuthRequest, res) => {
   }
 })
 
-authRouter.post('/refresh', async (req, res) => {
+authRouter.post('/refresh', refreshLimiter, async (req, res) => {
   try {
     const refreshToken = (req.cookies as Record<string, string>)?.refresh_token
     if (!refreshToken) {
@@ -112,6 +112,22 @@ authRouter.post('/refresh', async (req, res) => {
       res.status(401).json({ error: 'Refresh token invalide ou expiré' })
       return
     }
+
+    // Rotate: delete the consumed token and issue a new one
+    await pool.query('DELETE FROM refresh_tokens WHERE id = $1', [row.id])
+    const newRefreshToken = crypto.randomBytes(64).toString('hex')
+    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    await pool.query(
+      'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+      [row.user_id, newRefreshToken, newExpiry]
+    )
+    res.cookie('refresh_token', newRefreshToken, {
+      httpOnly: true,
+      secure: config.nodeEnv === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/api/auth/refresh',
+    })
 
     const accessToken = jwt.sign(
       { id: row.user_id, email: row.email, role: row.role },
