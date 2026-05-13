@@ -7,20 +7,11 @@ import { verifyJWT, requireAdmin, AuthRequest } from '../middleware/auth'
 import { publicLimiter } from '../middleware/rateLimiter'
 import { Exposant } from '../types'
 import { generateQrPdf } from '../services/pdf'
+import { isImageMagicBytes } from '../services/imageValidation'
 
 export const exposantsRouter = Router()
 
 const uploadsDir = path.join(__dirname, '..', '..', 'uploads')
-
-// Validates image magic bytes — MIME headers from the client cannot be trusted
-function isImageMagicBytes(buf: Buffer): boolean {
-  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return true // JPEG
-  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true // PNG
-  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return true // GIF
-  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
-      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return true // WebP
-  return false
-}
 
 const upload = multer({
   storage: multer.memoryStorage(),
