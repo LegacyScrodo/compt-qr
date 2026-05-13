@@ -11,6 +11,18 @@ export interface Exposant {
   logo_url: string | null
   logo_file: string | null
   statut: 'actif' | 'inactif'
+  plan_id: number | null
+  pos_x: number | null
+  pos_y: number | null
+  created_at: Date
+  updated_at: Date
+}
+
+export interface Plan {
+  id: number
+  nom: string
+  image_file: string
+  ordre: number
   created_at: Date
   updated_at: Date
 }
