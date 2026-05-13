@@ -10,6 +10,7 @@ import { UserForm } from './pages/admin/UserForm'
 import { StaffLayout } from './pages/staff/StaffLayout'
 import { Scanner } from './pages/staff/Scanner'
 import { PublicCard } from './pages/public/PublicCard'
+import { PlanView } from './pages/public/PlanView'
 import { NotFound } from './pages/NotFound'
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/e/:uuid" element={<PublicCard />} />
+          <Route path="/plan" element={<PlanView />} />
           <Route path="/login" element={<LoginPage />} />
 
           <Route path="/staff" element={<AuthGuard role="staff"><StaffLayout /></AuthGuard>}>
