@@ -171,10 +171,7 @@ export function PlanEditor() {
             markers={plan.exposants}
             onPlaceAt={placeAt}
             onMoveMarker={(id, x, y) => moveMarker(id, x, y)}
-            onMarkerClick={(id) => {
-              // commit position après drag éventuel
-              commitMove(id)
-            }}
+            onMoveEnd={(id, _x, _y) => commitMove(id)}
           />
         </div>
         <PlanEditorSidebar

@@ -27,6 +27,7 @@ interface EditProps {
   onMarkerClick?: (id: number) => void
   onPlaceAt?: (x: number, y: number) => void
   onMoveMarker?: (id: number, x: number, y: number) => void
+  onMoveEnd?: (id: number, x: number, y: number) => void
 }
 
 type Props = ViewProps | EditProps
@@ -59,14 +60,25 @@ export function PlanCanvas(props: Props) {
 
   // Drag d'un marqueur (edit mode)
   useEffect(() => {
-    if (!isEditProps(props) || dragId === null || !props.onMoveMarker) return
+    if (!isEditProps(props) || dragId === null) return
+    let didMove = false
+    let lastX = 0
+    let lastY = 0
     const onMove = (ev: PointerEvent) => {
       const pos = pctFromEvent(ev.clientX, ev.clientY)
-      if (pos && isEditProps(props) && props.onMoveMarker) {
-        props.onMoveMarker(dragId, pos.x, pos.y)
+      if (pos && isEditProps(props)) {
+        didMove = true
+        lastX = pos.x
+        lastY = pos.y
+        if (props.onMoveMarker) props.onMoveMarker(dragId, pos.x, pos.y)
       }
     }
-    const onUp = () => setDragId(null)
+    const onUp = () => {
+      if (didMove && isEditProps(props) && props.onMoveEnd) {
+        props.onMoveEnd(dragId, lastX, lastY)
+      }
+      setDragId(null)
+    }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
     window.addEventListener('pointercancel', onUp)
