@@ -22,7 +22,7 @@ const upload = multer({
 })
 
 // Champs retournés en vue publique (pas d'id interne)
-const PUBLIC_FIELDS = `uuid, nom, entreprise, stand, email, telephone, site_web, description, logo_url, logo_file, statut`
+const PUBLIC_FIELDS = `uuid, nom, entreprise, stand, email, telephone, site_web, description, logo_url, logo_file, statut, plan_id`
 
 // GET /api/exposants/:uuid — public (staff et visiteurs)
 exposantsRouter.get('/:uuid([0-9a-f-]{36})', publicLimiter, async (req, res) => {
