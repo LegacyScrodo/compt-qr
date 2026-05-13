@@ -1,4 +1,4 @@
-import type { Exposant, AuthUser, UserProfile } from './types'
+import type { Exposant, AuthUser, UserProfile, Plan, PlanWithExposants } from './types'
 
 const BASE = import.meta.env.VITE_API_URL ?? ''
 
@@ -73,6 +73,10 @@ export const api = {
         { method: 'POST', body: form }
       )
     },
+    setPosition: (id: number, data: { plan_id: number; pos_x: number; pos_y: number } | { plan_id: null }) =>
+      req<Exposant>(`/api/exposants/${id}/position`, {
+        method: 'PUT', body: JSON.stringify(data),
+      }),
   },
   users: {
     list: () => req<UserProfile[]>('/api/users'),
@@ -82,5 +86,24 @@ export const api = {
       req<UserProfile>(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) =>
       req<void>(`/api/users/${id}`, { method: 'DELETE' }),
+  },
+  plans: {
+    list: () => req<Plan[]>('/api/plans'),
+    get: (id: number) => req<PlanWithExposants>(`/api/plans/${id}`),
+    create: (nom: string, image: File) => {
+      const form = new FormData()
+      form.append('nom', nom)
+      form.append('image', image)
+      return req<Plan>('/api/plans', { method: 'POST', body: form })
+    },
+    update: (id: number, data: { nom: string; ordre?: number }) =>
+      req<Plan>(`/api/plans/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    replaceImage: (id: number, image: File) => {
+      const form = new FormData()
+      form.append('image', image)
+      return req<Plan>(`/api/plans/${id}/image`, { method: 'POST', body: form })
+    },
+    delete: (id: number) =>
+      req<void>(`/api/plans/${id}`, { method: 'DELETE' }),
   },
 }
