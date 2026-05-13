@@ -292,6 +292,47 @@ exposantsRouter.delete('/:id(\\d+)', verifyJWT, requireAdmin, async (req, res) =
   }
 })
 
+// PUT /api/exposants/:id/position — admin
+exposantsRouter.put('/:id(\\d+)/position', verifyJWT, requireAdmin, async (req, res) => {
+  try {
+    const { plan_id, pos_x, pos_y } = req.body as {
+      plan_id?: number | null; pos_x?: number; pos_y?: number
+    }
+
+    if (plan_id === null || plan_id === undefined) {
+      const result = await pool.query(
+        'UPDATE exposants SET plan_id = NULL, pos_x = NULL, pos_y = NULL WHERE id = $1 RETURNING *',
+        [req.params.id]
+      )
+      if (!result.rows[0]) { res.status(404).json({ error: 'Exposant introuvable' }); return }
+      res.json(result.rows[0])
+      return
+    }
+
+    if (typeof pos_x !== 'number' || typeof pos_y !== 'number' ||
+        pos_x < 0 || pos_x > 100 || pos_y < 0 || pos_y > 100) {
+      res.status(400).json({ error: 'pos_x et pos_y doivent être entre 0 et 100' })
+      return
+    }
+
+    const planExists = await pool.query('SELECT 1 FROM plans WHERE id = $1', [plan_id])
+    if (!planExists.rows[0]) {
+      res.status(400).json({ error: 'Plan inexistant' })
+      return
+    }
+
+    const result = await pool.query(
+      'UPDATE exposants SET plan_id = $1, pos_x = $2, pos_y = $3 WHERE id = $4 RETURNING *',
+      [plan_id, pos_x, pos_y, req.params.id]
+    )
+    if (!result.rows[0]) { res.status(404).json({ error: 'Exposant introuvable' }); return }
+    res.json(result.rows[0])
+  } catch (err) {
+    console.error('Update position error:', err)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 // POST /api/exposants/:id/logo — admin
 exposantsRouter.post('/:id(\\d+)/logo', verifyJWT, requireAdmin, upload.single('logo'), async (req: AuthRequest, res) => {
   try {
