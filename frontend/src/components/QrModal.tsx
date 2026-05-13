@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { X, Download, Printer } from 'lucide-react'
 import type { Exposant } from '../types'
@@ -8,9 +8,47 @@ interface Props {
   onClose: () => void
 }
 
+function useCircularLogo(src: string | null | undefined, size: number): string | null {
+  const [dataUrl, setDataUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!src) { setDataUrl(null); return }
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext('2d')!
+      // White circle background
+      ctx.fillStyle = 'white'
+      ctx.beginPath()
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
+      ctx.fill()
+      // Clip to inner circle (padding of 10%)
+      const pad = Math.round(size * 0.1)
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(size / 2, size / 2, size / 2 - pad, 0, Math.PI * 2)
+      ctx.clip()
+      ctx.drawImage(img, pad, pad, size - pad * 2, size - pad * 2)
+      ctx.restore()
+      setDataUrl(canvas.toDataURL('image/png'))
+    }
+    img.onerror = () => setDataUrl(null)
+    img.src = src
+  }, [src, size])
+
+  return dataUrl
+}
+
 export function QrModal({ exposant, onClose }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const url = `${window.location.origin}/e/${exposant.uuid}`
+
+  const logoSrc = exposant.logo_url ?? exposant.logo_file ?? null
+  const LOGO_SIZE = 66
+  const logoDataUrl = useCircularLogo(logoSrc, LOGO_SIZE)
 
   function download() {
     const canvas = containerRef.current?.querySelector('canvas')
@@ -55,7 +93,17 @@ export function QrModal({ exposant, onClose }: Props) {
         </div>
 
         <div className="flex justify-center bg-white rounded-xl p-4" ref={containerRef}>
-          <QRCodeCanvas value={url} size={220} level="M" />
+          <QRCodeCanvas
+            value={url}
+            size={220}
+            level="H"
+            imageSettings={logoDataUrl ? {
+              src: logoDataUrl,
+              height: LOGO_SIZE,
+              width: LOGO_SIZE,
+              excavate: true,
+            } : undefined}
+          />
         </div>
 
         <p className="text-xs text-gray-500 print:text-black text-center mt-3 break-all">{url}</p>

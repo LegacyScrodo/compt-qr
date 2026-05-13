@@ -4,6 +4,8 @@ import { api } from '../../api'
 import type { Exposant } from '../../types'
 import { CheckCircle, XCircle } from 'lucide-react'
 
+const IS_DEV = import.meta.env.DEV
+
 type Result = { ok: true; exposant: Exposant } | { ok: false; reason: string } | null
 
 export function Scanner() {
@@ -68,6 +70,29 @@ export function Scanner() {
       <div className="w-full max-w-sm">
         <QrScanner onScan={handleScan} active={scanning} />
       </div>
+      {IS_DEV && (
+        <form
+          className="w-full max-w-sm flex gap-2"
+          onSubmit={e => {
+            e.preventDefault()
+            const input = (e.currentTarget.elements.namedItem('uuid') as HTMLInputElement).value.trim()
+            const match = input.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i)
+            if (match) handleScan(match[1])
+          }}
+        >
+          <input
+            name="uuid"
+            placeholder="[DEV] UUID ou URL exposant"
+            className="flex-1 bg-gray-800 border border-yellow-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          />
+          <button
+            type="submit"
+            className="px-3 py-2 bg-yellow-700 hover:bg-yellow-600 rounded-lg text-sm text-white transition-colors"
+          >
+            Simuler
+          </button>
+        </form>
+      )}
     </div>
   )
 }

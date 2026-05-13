@@ -18,20 +18,30 @@ export function QrScanner({ onScan, active }: Props) {
   useEffect(() => {
     if (!active) return
 
-    const scanner = new Html5Qrcode(divId)
-    scannerRef.current = scanner
+    let scanner: Html5Qrcode | null = null
+    let started = false
 
-    scanner.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 260, height: 260 } },
-      handleScan,
-      undefined
-    ).catch(err => {
-      console.error('Camera error:', err)
-    })
+    try {
+      scanner = new Html5Qrcode(divId)
+      scannerRef.current = scanner
+      scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 260, height: 260 } },
+        handleScan,
+        undefined
+      ).then(() => { started = true }).catch(err => {
+        console.error('Camera error:', err)
+      })
+    } catch (err) {
+      console.error('Scanner init error:', err)
+    }
 
     return () => {
-      scanner.stop().catch(() => {})
+      if (scanner && started) {
+        scanner.stop().catch(() => {})
+      } else if (scanner) {
+        try { scanner.clear() } catch { /* ignore */ }
+      }
       scannerRef.current = null
     }
   }, [active, handleScan])
