@@ -310,6 +310,7 @@ exposantsRouter.put('/:id(\\d+)/position', verifyJWT, requireAdmin, async (req, 
     }
 
     if (typeof pos_x !== 'number' || typeof pos_y !== 'number' ||
+        !Number.isFinite(pos_x) || !Number.isFinite(pos_y) ||
         pos_x < 0 || pos_x > 100 || pos_y < 0 || pos_y > 100) {
       res.status(400).json({ error: 'pos_x et pos_y doivent être entre 0 et 100' })
       return
