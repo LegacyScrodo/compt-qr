@@ -7,6 +7,8 @@ import { ExposantList } from './pages/admin/ExposantList'
 import { ExposantForm } from './pages/admin/ExposantForm'
 import { UserList } from './pages/admin/UserList'
 import { UserForm } from './pages/admin/UserForm'
+import { PlanList } from './pages/admin/PlanList'
+import { PlanEditor } from './pages/admin/PlanEditor'
 import { StaffLayout } from './pages/staff/StaffLayout'
 import { Scanner } from './pages/staff/Scanner'
 import { PublicCard } from './pages/public/PublicCard'
@@ -35,6 +37,8 @@ export default function App() {
             <Route path="utilisateurs" element={<UserList />} />
             <Route path="utilisateurs/new" element={<UserForm />} />
             <Route path="utilisateurs/:id" element={<UserForm />} />
+            <Route path="plans" element={<PlanList />} />
+            <Route path="plans/:id" element={<PlanEditor />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

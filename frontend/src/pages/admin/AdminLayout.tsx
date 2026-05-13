@@ -53,6 +53,14 @@ export function AdminLayout() {
                 >
                   Utilisateurs
                 </Link>
+                <Link
+                  to="/admin/plans"
+                  className={`text-sm transition-colors ${
+                    isActive('/admin/plans') ? 'text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Plans
+                </Link>
               </div>
             </div>
             <div ref={userMenuRef} className="hidden sm:block relative">
@@ -113,6 +121,15 @@ export function AdminLayout() {
                 }`}
               >
                 Utilisateurs
+              </Link>
+              <Link
+                to="/admin/plans"
+                onClick={() => setMenuOpen(false)}
+                className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                  isActive('/admin/plans') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                }`}
+              >
+                Plans
               </Link>
               <div className="border-t border-gray-800 my-2 pt-2">
                 <div className="px-3 py-1 text-xs text-gray-500 truncate">{user?.email}</div>
