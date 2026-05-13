@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { api } from '../../api'
 import type { Exposant } from '../../types'
-import { Mail, Phone, Globe, SearchX, Eye } from 'lucide-react'
+import { Mail, Phone, Globe, SearchX, Eye, MapPin } from 'lucide-react'
 import { Avatar } from '../../components/Avatar'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -109,6 +109,16 @@ export function PublicCard() {
           {/* Description */}
           {exposant.description && (
             <p className="text-gray-600 text-sm mb-5 leading-relaxed">{exposant.description}</p>
+          )}
+
+          {exposant.plan_id != null && (
+            <Link
+              to={`/plan?highlight=${exposant.uuid}`}
+              className="flex items-center gap-2 text-sm text-indigo-700 hover:text-indigo-900 mb-5"
+            >
+              <MapPin size={16} />
+              Voir sur le plan
+            </Link>
           )}
 
           {/* Contacts */}
